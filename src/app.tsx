@@ -4,6 +4,7 @@ import TextInput from "ink-text-input";
 import SessionList from "./components/SessionList.js";
 import ProjectList from "./components/ProjectList.js";
 import Preview from "./components/Preview.js";
+import Settings from "./components/Settings.js";
 import {
   scanSessions,
   groupByProject,
@@ -33,6 +34,7 @@ export default function App() {
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     setBookmarkedIds(getBookmarkedIds());
@@ -107,6 +109,10 @@ export default function App() {
       return;
     }
 
+    if (showSettings) {
+      return;
+    }
+
     if (confirmDelete && selectedSession) {
       if (input === "y" || input === "Y") {
         deleteSession(selectedSession).then((ok) => {
@@ -177,6 +183,9 @@ export default function App() {
     ) {
       setConfirmDelete(true);
     }
+    if (input === "s" && !searchMode) {
+      setShowSettings(true);
+    }
   });
 
   const handleSelect = (session: Session) => {
@@ -210,6 +219,10 @@ export default function App() {
         <Text color="cyan">Scanning sessions...</Text>
       </Box>
     );
+  }
+
+  if (showSettings) {
+    return <Settings onClose={() => setShowSettings(false)} />;
   }
 
   if (showPreview && selectedSession) {
@@ -318,11 +331,11 @@ export default function App() {
               ? "[Esc] cancel  (searches titles + conversation content)"
               : view === "sessions"
                 ? projectFilter
-                  ? "[Enter] resume  [p] preview  [b] bookmark  [d] delete  [/] search  [Tab] next  [q] clear filter"
-                  : "[Enter] resume  [p] preview  [b] bookmark  [d] delete  [/] search  [Tab] next  [q] quit"
+                  ? "[Enter] resume  [p] preview  [b] bookmark  [d] delete  [/] search  [s] settings  [Tab] next  [q] clear filter"
+                  : "[Enter] resume  [p] preview  [b] bookmark  [d] delete  [/] search  [s] settings  [Tab] next  [q] quit"
                 : view === "bookmarks"
-                  ? "[Enter] resume  [p] preview  [b] unbookmark  [d] delete  [Tab] next  [q] quit"
-                  : "[Enter] filter  [Tab] next  [j/k] navigate  [q] quit"}
+                  ? "[Enter] resume  [p] preview  [b] unbookmark  [d] delete  [s] settings  [Tab] next  [q] quit"
+                  : "[Enter] filter  [s] settings  [Tab] next  [j/k] navigate  [q] quit"}
         </Text>
       </Box>
     </Box>
