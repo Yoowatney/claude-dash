@@ -138,6 +138,73 @@ export async function getSessionPreview(
   return messages;
 }
 
+export async function searchSessionContent(
+  query: string,
+): Promise<Set<string>> {
+  const matchingIds = new Set<string>();
+  if (!query.trim()) return matchingIds;
+
+  const q = query.toLowerCase();
+
+  let projectDirs: string[];
+  try {
+    projectDirs = await readdir(PROJECTS_DIR);
+  } catch {
+    return matchingIds;
+  }
+
+  const searchPromises: Promise<void>[] = [];
+
+  for (const projDir of projectDirs) {
+    const projPath = join(PROJECTS_DIR, projDir);
+
+    searchPromises.push(
+      (async () => {
+        const projStat = await stat(projPath).catch(() => null);
+        if (!projStat?.isDirectory()) return;
+
+        let files: string[];
+        try {
+          files = await readdir(projPath);
+        } catch {
+          return;
+        }
+
+        for (const file of files.filter((f) => f.endsWith(".jsonl"))) {
+          const sessionId = basename(file, ".jsonl");
+          const filePath = join(projPath, file);
+          try {
+            const content = await readFile(filePath, "utf-8");
+            for (const line of content.split("\n")) {
+              if (!line.trim()) continue;
+              try {
+                const msg = JSON.parse(line);
+                if (
+                  (msg.type === "user" || msg.type === "assistant") &&
+                  msg.message?.content
+                ) {
+                  const text = extractText(msg.message.content).toLowerCase();
+                  if (text.includes(q)) {
+                    matchingIds.add(sessionId);
+                    break;
+                  }
+                }
+              } catch {
+                continue;
+              }
+            }
+          } catch {
+            continue;
+          }
+        }
+      })(),
+    );
+  }
+
+  await Promise.all(searchPromises);
+  return matchingIds;
+}
+
 export async function scanSessions(): Promise<Session[]> {
   const sessions: Session[] = [];
 

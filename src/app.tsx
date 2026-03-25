@@ -1,10 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import TextInput from "ink-text-input";
 import SessionList from "./components/SessionList.js";
 import ProjectList from "./components/ProjectList.js";
 import Preview from "./components/Preview.js";
-import { scanSessions, groupByProject } from "./lib/scanner.js";
+import {
+  scanSessions,
+  groupByProject,
+  searchSessionContent,
+} from "./lib/scanner.js";
 import { resumeSession } from "./lib/launcher.js";
 import type { Session, ProjectSummary } from "./lib/scanner.js";
 
@@ -18,6 +22,10 @@ export default function App() {
   const [view, setView] = useState<View>("sessions");
   const [searchMode, setSearchMode] = useState(false);
   const [filter, setFilter] = useState("");
+  const [contentMatchIds, setContentMatchIds] = useState<Set<string> | null>(
+    null,
+  );
+  const [searching, setSearching] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
@@ -31,15 +39,58 @@ export default function App() {
     });
   }, []);
 
-  const filteredSessions = projectFilter
-    ? sessions.filter((s) => s.project === projectFilter)
-    : sessions;
+  // Debounced content search
+  useEffect(() => {
+    if (!filter.trim()) {
+      setContentMatchIds(null);
+      setSearching(false);
+      return;
+    }
+
+    setSearching(true);
+    const timer = setTimeout(() => {
+      searchSessionContent(filter).then((ids) => {
+        setContentMatchIds(ids);
+        setSearching(false);
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [filter]);
+
+  // Filter sessions: project filter + text search (title OR content)
+  const filteredSessions = useCallback(() => {
+    let result = projectFilter
+      ? sessions.filter((s) => s.project === projectFilter)
+      : sessions;
+
+    if (filter.trim()) {
+      const q = filter.toLowerCase();
+      result = result.filter((s) => {
+        // Match on title
+        if (
+          s.project.toLowerCase().includes(q) ||
+          s.firstMessage.toLowerCase().includes(q)
+        ) {
+          return true;
+        }
+        // Match on content
+        if (contentMatchIds?.has(s.id)) {
+          return true;
+        }
+        return false;
+      });
+    }
+
+    return result;
+  }, [sessions, projectFilter, filter, contentMatchIds])();
 
   useInput((input, key) => {
     if (searchMode) {
       if (key.escape) {
         setSearchMode(false);
         setFilter("");
+        setContentMatchIds(null);
       }
       return;
     }
@@ -82,7 +133,6 @@ export default function App() {
 
   const handleProjectSelect = (project: ProjectSummary) => {
     if (projectFilter === project.name) {
-      // Already filtered — clear filter
       setProjectFilter(null);
     } else {
       setProjectFilter(project.name);
@@ -122,7 +172,7 @@ export default function App() {
         <Text dimColor> — Claude Code Session Dashboard</Text>
         <Text dimColor>
           {"  "}({filteredSessions.length}
-          {projectFilter ? `/${sessions.length}` : ""} sessions,{" "}
+          {projectFilter || filter ? `/${sessions.length}` : ""} sessions,{" "}
           {projects.length} projects)
         </Text>
       </Box>
@@ -141,9 +191,7 @@ export default function App() {
         >
           [Projects]
         </Text>
-        {projectFilter && (
-          <Text color="yellow"> ~ {projectFilter}</Text>
-        )}
+        {projectFilter && <Text color="yellow"> ~ {projectFilter}</Text>}
       </Box>
 
       {/* Projects view */}
@@ -171,6 +219,7 @@ export default function App() {
         <Box marginTop={1}>
           <Text color="yellow">/</Text>
           <TextInput value={filter} onChange={setFilter} />
+          {searching && <Text color="gray"> searching...</Text>}
         </Box>
       )}
 
@@ -178,7 +227,7 @@ export default function App() {
       <Box marginTop={1}>
         <Text dimColor>
           {searchMode
-            ? "[Esc] cancel search"
+            ? "[Esc] cancel  (searches titles + conversation content)"
             : view === "sessions"
               ? projectFilter
                 ? "[Enter] resume  [p] preview  [/] search  [Tab] projects  [q] clear filter"

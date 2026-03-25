@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
 import type { Session } from "../lib/scanner.js";
 
@@ -31,40 +31,37 @@ export default function SessionList({
 }: Props) {
   const [cursor, setCursor] = useState(0);
 
-  const filtered = sessions.filter((s) => {
-    if (!filter) return true;
-    const q = filter.toLowerCase();
-    return (
-      s.project.toLowerCase().includes(q) ||
-      s.firstMessage.toLowerCase().includes(q)
-    );
-  });
+  // Reset cursor when sessions change (e.g. filter applied)
+  useEffect(() => {
+    setCursor(0);
+    if (sessions[0]) onCursorChange(sessions[0]);
+  }, [sessions.length]);
 
   useInput((input, key) => {
     if (key.upArrow || (input === "k" && !filter)) {
       setCursor((c) => {
         const next = Math.max(0, c - 1);
-        if (filtered[next]) onCursorChange(filtered[next]);
+        if (sessions[next]) onCursorChange(sessions[next]);
         return next;
       });
     }
     if (key.downArrow || (input === "j" && !filter)) {
       setCursor((c) => {
-        const next = Math.min(filtered.length - 1, c + 1);
-        if (filtered[next]) onCursorChange(filtered[next]);
+        const next = Math.min(sessions.length - 1, c + 1);
+        if (sessions[next]) onCursorChange(sessions[next]);
         return next;
       });
     }
-    if (key.return && filtered[cursor]) {
-      onSelect(filtered[cursor]);
+    if (key.return && sessions[cursor]) {
+      onSelect(sessions[cursor]);
     }
   });
 
   const maxVisible = process.stdout.rows ? process.stdout.rows - 8 : 20;
   const start = Math.max(0, cursor - Math.floor(maxVisible / 2));
-  const visible = filtered.slice(start, start + maxVisible);
+  const visible = sessions.slice(start, start + maxVisible);
 
-  if (filtered.length === 0) {
+  if (sessions.length === 0) {
     return (
       <Box>
         <Text dimColor>No sessions found.</Text>
@@ -104,7 +101,7 @@ export default function SessionList({
       })}
       <Box marginTop={1}>
         <Text dimColor>
-          {filtered.length} sessions | {cursor + 1}/{filtered.length}
+          {sessions.length} sessions | {cursor + 1}/{sessions.length}
         </Text>
       </Box>
     </Box>
