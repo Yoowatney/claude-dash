@@ -19,7 +19,12 @@ import type { Session, ProjectSummary } from "./lib/scanner.js";
 
 type View = "sessions" | "projects" | "bookmarks";
 
-export default function App() {
+interface AppProps {
+  version: string;
+  updateInfo: { current: string; latest: string } | null;
+}
+
+export default function App({ version, updateInfo }: AppProps) {
   const { exit } = useApp();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
@@ -255,12 +260,17 @@ export default function App() {
         <Text bold color="cyan">
           claudash
         </Text>
-        <Text dimColor> — Claude Code Session Dashboard</Text>
+        <Text dimColor> v{version}</Text>
         <Text dimColor>
           {"  "}({filteredSessions.length}
           {projectFilter || filter ? `/${sessions.length}` : ""} sessions,{" "}
           {projects.length} projects)
         </Text>
+        {updateInfo && (
+          <Text color="yellow">
+            {"  "}update: {updateInfo.current} → {updateInfo.latest}
+          </Text>
+        )}
       </Box>
 
       {/* Tabs + filter indicator */}

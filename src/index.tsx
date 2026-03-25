@@ -20,16 +20,14 @@ if (!notifier.update) {
   await notifier.fetchInfo();
 }
 
-// Show update status
-if (notifier.update && notifier.update.latest !== pkg.version) {
-  console.log(
-    `\x1b[33m Update available: ${pkg.version} → ${notifier.update.latest}\x1b[0m`,
-  );
-  console.log(
-    `\x1b[33m Run: npm i -g @yoyoyoyoo/claude-dash\x1b[0m\n`,
-  );
-} else {
-  console.log(`\x1b[32m claude-dash v${pkg.version} (latest)\x1b[0m\n`);
-}
+const updateInfo =
+  notifier.update && notifier.update.latest !== pkg.version
+    ? { current: pkg.version, latest: notifier.update.latest }
+    : null;
 
-render(createElement(App));
+render(
+  createElement(App, {
+    version: pkg.version,
+    updateInfo,
+  }),
+);
