@@ -1,9 +1,9 @@
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
-type LaunchMode = "tmux" | "iterm2-tab" | "terminal-app" | "print";
+type LaunchMode = "inline" | "tmux" | "iterm2-tab" | "terminal-app" | "print";
 
 interface Config {
   launchMode: LaunchMode;
@@ -26,19 +26,8 @@ function loadConfig(): Config {
 }
 
 function detectMode(): LaunchMode {
-  if (process.env["TMUX"]) return "tmux";
-  if (process.platform === "darwin") {
-    // Check which terminal is running
-    try {
-      const termProgram = process.env["TERM_PROGRAM"] || "";
-      if (termProgram === "iTerm.app") return "iterm2-tab";
-      if (termProgram === "Apple_Terminal") return "terminal-app";
-    } catch {
-      // ignore
-    }
-    return "iterm2-tab";
-  }
-  return "print";
+  // Default: run in the same terminal
+  return "inline";
 }
 
 function saveConfig(config: Config): void {
@@ -98,10 +87,18 @@ function launchTerminalApp(sessionId: string, projectPath: string): void {
   }
 }
 
+function launchInline(sessionId: string, projectPath: string): void {
+  process.chdir(projectPath);
+  spawnSync("claude", ["--resume", sessionId], { stdio: "inherit" });
+}
+
 export function resumeSession(sessionId: string, projectPath: string): void {
   const config = loadConfig();
 
   switch (config.launchMode) {
+    case "inline":
+      launchInline(sessionId, projectPath);
+      break;
     case "tmux":
       launchTmux(sessionId, projectPath);
       break;
