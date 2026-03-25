@@ -5,6 +5,7 @@ import SessionList from "./components/SessionList.js";
 import ProjectList from "./components/ProjectList.js";
 import Preview from "./components/Preview.js";
 import Settings from "./components/Settings.js";
+import Help from "./components/Help.js";
 import {
   scanSessions,
   groupByProject,
@@ -13,6 +14,7 @@ import {
 } from "./lib/scanner.js";
 import { resumeSession } from "./lib/launcher.js";
 import { toggleBookmark, getBookmarkedIds } from "./lib/bookmarks.js";
+import { getFooterText } from "./lib/keybindings.js";
 import type { Session, ProjectSummary } from "./lib/scanner.js";
 
 type View = "sessions" | "projects" | "bookmarks";
@@ -35,6 +37,7 @@ export default function App() {
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     setBookmarkedIds(getBookmarkedIds());
@@ -109,7 +112,7 @@ export default function App() {
       return;
     }
 
-    if (showSettings) {
+    if (showSettings || showHelp) {
       return;
     }
 
@@ -186,6 +189,9 @@ export default function App() {
     if (input === "s" && !searchMode) {
       setShowSettings(true);
     }
+    if (input === "?" && !searchMode) {
+      setShowHelp(true);
+    }
   });
 
   const handleSelect = (session: Session) => {
@@ -223,6 +229,10 @@ export default function App() {
 
   if (showSettings) {
     return <Settings onClose={() => setShowSettings(false)} />;
+  }
+
+  if (showHelp) {
+    return <Help onClose={() => setShowHelp(false)} />;
   }
 
   if (showPreview && selectedSession) {
@@ -329,13 +339,7 @@ export default function App() {
             ? "[y] confirm delete  [n/any] cancel"
             : searchMode
               ? "[Esc] cancel  (searches titles + conversation content)"
-              : view === "sessions"
-                ? projectFilter
-                  ? "[Enter] resume  [p] preview  [b] bookmark  [d] delete  [/] search  [s] settings  [Tab] next  [q] clear filter"
-                  : "[Enter] resume  [p] preview  [b] bookmark  [d] delete  [/] search  [s] settings  [Tab] next  [q] quit"
-                : view === "bookmarks"
-                  ? "[Enter] resume  [p] preview  [b] unbookmark  [d] delete  [s] settings  [Tab] next  [q] quit"
-                  : "[Enter] filter  [s] settings  [Tab] next  [j/k] navigate  [q] quit"}
+              : getFooterText(view as "sessions" | "projects" | "bookmarks")}
         </Text>
       </Box>
     </Box>
