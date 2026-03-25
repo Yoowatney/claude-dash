@@ -10,6 +10,7 @@ import {
   searchSessionContent,
 } from "./lib/scanner.js";
 import { resumeSession } from "./lib/launcher.js";
+import { toggleBookmark, getBookmarkedIds } from "./lib/bookmarks.js";
 import type { Session, ProjectSummary } from "./lib/scanner.js";
 
 type View = "sessions" | "projects";
@@ -29,8 +30,10 @@ export default function App() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    setBookmarkedIds(getBookmarkedIds());
     scanSessions().then((result) => {
       setSessions(result);
       setProjects(groupByProject(result));
@@ -117,6 +120,10 @@ export default function App() {
     }
     if (input === "p" && selectedSession && view === "sessions") {
       setShowPreview(true);
+    }
+    if (input === "b" && selectedSession && view === "sessions") {
+      toggleBookmark(selectedSession.id);
+      setBookmarkedIds(getBookmarkedIds());
     }
   });
 
@@ -211,6 +218,7 @@ export default function App() {
           onSelect={handleSelect}
           onCursorChange={handleCursorChange}
           filter={filter}
+          bookmarkedIds={bookmarkedIds}
         />
       )}
 
@@ -230,8 +238,8 @@ export default function App() {
             ? "[Esc] cancel  (searches titles + conversation content)"
             : view === "sessions"
               ? projectFilter
-                ? "[Enter] resume  [p] preview  [/] search  [Tab] projects  [q] clear filter"
-                : "[Enter] resume  [p] preview  [/] search  [Tab] projects  [j/k] navigate  [q] quit"
+                ? "[Enter] resume  [p] preview  [b] bookmark  [/] search  [Tab] projects  [q] clear filter"
+                : "[Enter] resume  [p] preview  [b] bookmark  [/] search  [Tab] projects  [j/k] navigate  [q] quit"
               : "[Enter] filter  [Tab] sessions  [j/k] navigate  [q] quit"}
         </Text>
       </Box>

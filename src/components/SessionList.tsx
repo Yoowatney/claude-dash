@@ -7,6 +7,7 @@ interface Props {
   onSelect: (session: Session) => void;
   onCursorChange: (session: Session) => void;
   filter: string;
+  bookmarkedIds: Set<string>;
 }
 
 function timeAgo(date: Date): string {
@@ -28,6 +29,7 @@ export default function SessionList({
   onSelect,
   onCursorChange,
   filter,
+  bookmarkedIds,
 }: Props) {
   const [cursor, setCursor] = useState(0);
 
@@ -83,10 +85,12 @@ export default function SessionList({
                 ? "yellow"
                 : "cyan";
 
+        const isBookmarked = bookmarkedIds.has(session.id);
+
         return (
           <Box key={session.id}>
             <Text color={selected ? "white" : "gray"} bold={selected}>
-              {selected ? "▶ " : "  "}
+              {selected ? "▶" : isBookmarked ? "★" : " "}{" "}
             </Text>
             <Text color={projectColor} bold>
               {session.project.padEnd(14)}
