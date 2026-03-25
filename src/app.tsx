@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import TextInput from "ink-text-input";
 import SessionList from "./components/SessionList.js";
+import ProjectList from "./components/ProjectList.js";
 import Preview from "./components/Preview.js";
 import { scanSessions, groupByProject } from "./lib/scanner.js";
 import { resumeSession } from "./lib/launcher.js";
@@ -19,6 +20,7 @@ export default function App() {
   const [filter, setFilter] = useState("");
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
 
   useEffect(() => {
     scanSessions().then((result) => {
@@ -28,6 +30,10 @@ export default function App() {
       if (result.length > 0) setSelectedSession(result[0]);
     });
   }, []);
+
+  const filteredSessions = projectFilter
+    ? sessions.filter((s) => s.project === projectFilter)
+    : sessions;
 
   useInput((input, key) => {
     if (searchMode) {
@@ -46,7 +52,11 @@ export default function App() {
     }
 
     if (input === "q" || key.escape) {
-      exit();
+      if (projectFilter && view === "sessions") {
+        setProjectFilter(null);
+      } else {
+        exit();
+      }
     }
     if (input === "/") {
       setSearchMode(true);
@@ -54,7 +64,7 @@ export default function App() {
     if (key.tab) {
       setView((v) => (v === "sessions" ? "projects" : "sessions"));
     }
-    if (input === "p" && selectedSession) {
+    if (input === "p" && selectedSession && view === "sessions") {
       setShowPreview(true);
     }
   });
@@ -70,10 +80,25 @@ export default function App() {
     setSelectedSession(session);
   };
 
+  const handleProjectSelect = (project: ProjectSummary) => {
+    if (projectFilter === project.name) {
+      // Already filtered — clear filter
+      setProjectFilter(null);
+    } else {
+      setProjectFilter(project.name);
+      setView("sessions");
+    }
+  };
+
+  const handleAllSelect = () => {
+    setProjectFilter(null);
+    setView("sessions");
+  };
+
   if (loading) {
     return (
       <Box>
-        <Text color="cyan">⏳ Scanning sessions...</Text>
+        <Text color="cyan">Scanning sessions...</Text>
       </Box>
     );
   }
@@ -96,11 +121,13 @@ export default function App() {
         </Text>
         <Text dimColor> — Claude Code Session Dashboard</Text>
         <Text dimColor>
-          {"  "}({sessions.length} sessions, {projects.length} projects)
+          {"  "}({filteredSessions.length}
+          {projectFilter ? `/${sessions.length}` : ""} sessions,{" "}
+          {projects.length} projects)
         </Text>
       </Box>
 
-      {/* Tabs */}
+      {/* Tabs + filter indicator */}
       <Box marginBottom={1} gap={2}>
         <Text
           bold={view === "sessions"}
@@ -114,29 +141,25 @@ export default function App() {
         >
           [Projects]
         </Text>
+        {projectFilter && (
+          <Text color="yellow"> ~ {projectFilter}</Text>
+        )}
       </Box>
 
       {/* Projects view */}
       {view === "projects" && (
-        <Box flexDirection="column" marginBottom={1}>
-          {projects.map((p) => (
-            <Box key={p.name}>
-              <Text color="green" bold>
-                {p.name.padEnd(18)}
-              </Text>
-              <Text>{String(p.sessionCount).padStart(5)} sessions</Text>
-              <Text dimColor>
-                {"  "}last: {p.lastActive.toLocaleDateString()}
-              </Text>
-            </Box>
-          ))}
-        </Box>
+        <ProjectList
+          projects={projects}
+          onSelect={handleProjectSelect}
+          onSelectAll={handleAllSelect}
+          selectedProject={projectFilter}
+        />
       )}
 
       {/* Sessions view */}
       {view === "sessions" && (
         <SessionList
-          sessions={sessions}
+          sessions={filteredSessions}
           onSelect={handleSelect}
           onCursorChange={handleCursorChange}
           filter={filter}
@@ -156,7 +179,11 @@ export default function App() {
         <Text dimColor>
           {searchMode
             ? "[Esc] cancel search"
-            : "[Enter] resume  [p] preview  [/] search  [Tab] switch view  [j/k] navigate  [q] quit"}
+            : view === "sessions"
+              ? projectFilter
+                ? "[Enter] resume  [p] preview  [/] search  [Tab] projects  [q] clear filter"
+                : "[Enter] resume  [p] preview  [/] search  [Tab] projects  [j/k] navigate  [q] quit"
+              : "[Enter] filter  [Tab] sessions  [j/k] navigate  [q] quit"}
         </Text>
       </Box>
     </Box>

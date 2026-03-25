@@ -1,6 +1,6 @@
 {
   "name": "@yoyoyoyoo/claude-dash",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Interactive TUI dashboard for Claude Code sessions. Browse, search, preview, and resume sessions across all projects.",
   "type": "module",
   "bin": {
