@@ -115,7 +115,15 @@ export default function App() {
     if (input === "/") {
       setSearchMode(true);
     }
-    if (key.tab) {
+    if (key.tab && key.shift) {
+      setView((v) =>
+        v === "sessions"
+          ? "bookmarks"
+          : v === "bookmarks"
+            ? "projects"
+            : "sessions",
+      );
+    } else if (key.tab) {
       setView((v) =>
         v === "sessions"
           ? "projects"
