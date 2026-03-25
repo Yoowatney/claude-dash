@@ -8,6 +8,7 @@ import {
   scanSessions,
   groupByProject,
   searchSessionContent,
+  deleteSession,
 } from "./lib/scanner.js";
 import { resumeSession } from "./lib/launcher.js";
 import { toggleBookmark, getBookmarkedIds } from "./lib/bookmarks.js";
@@ -31,6 +32,7 @@ export default function App() {
   const [showPreview, setShowPreview] = useState(false);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     setBookmarkedIds(getBookmarkedIds());
@@ -105,6 +107,27 @@ export default function App() {
       return;
     }
 
+    if (confirmDelete && selectedSession) {
+      if (input === "y" || input === "Y") {
+        deleteSession(selectedSession).then((ok) => {
+          if (ok) {
+            setSessions((prev) =>
+              prev.filter((s) => s.id !== selectedSession.id),
+            );
+            setProjects(
+              groupByProject(
+                sessions.filter((s) => s.id !== selectedSession.id),
+              ),
+            );
+          }
+          setConfirmDelete(false);
+        });
+      } else {
+        setConfirmDelete(false);
+      }
+      return;
+    }
+
     if (input === "q" || key.escape) {
       if (projectFilter && view === "sessions") {
         setProjectFilter(null);
@@ -146,6 +169,13 @@ export default function App() {
     ) {
       toggleBookmark(selectedSession.id);
       setBookmarkedIds(getBookmarkedIds());
+    }
+    if (
+      input === "d" &&
+      selectedSession &&
+      (view === "sessions" || view === "bookmarks")
+    ) {
+      setConfirmDelete(true);
     }
   });
 
@@ -270,18 +300,29 @@ export default function App() {
         </Box>
       )}
 
+      {/* Delete confirmation */}
+      {confirmDelete && selectedSession && (
+        <Box marginTop={1}>
+          <Text color="red" bold>
+            Delete session "{selectedSession.firstMessage.slice(0, 40)}..."? [y/n]
+          </Text>
+        </Box>
+      )}
+
       {/* Footer */}
       <Box marginTop={1}>
         <Text dimColor>
-          {searchMode
-            ? "[Esc] cancel  (searches titles + conversation content)"
-            : view === "sessions"
-              ? projectFilter
-                ? "[Enter] resume  [p] preview  [b] bookmark  [/] search  [Tab] next  [q] clear filter"
-                : "[Enter] resume  [p] preview  [b] bookmark  [/] search  [Tab] next  [q] quit"
-              : view === "bookmarks"
-                ? "[Enter] resume  [p] preview  [b] unbookmark  [Tab] next  [q] quit"
-                : "[Enter] filter  [Tab] next  [j/k] navigate  [q] quit"}
+          {confirmDelete
+            ? "[y] confirm delete  [n/any] cancel"
+            : searchMode
+              ? "[Esc] cancel  (searches titles + conversation content)"
+              : view === "sessions"
+                ? projectFilter
+                  ? "[Enter] resume  [p] preview  [b] bookmark  [d] delete  [/] search  [Tab] next  [q] clear filter"
+                  : "[Enter] resume  [p] preview  [b] bookmark  [d] delete  [/] search  [Tab] next  [q] quit"
+                : view === "bookmarks"
+                  ? "[Enter] resume  [p] preview  [b] unbookmark  [d] delete  [Tab] next  [q] quit"
+                  : "[Enter] filter  [Tab] next  [j/k] navigate  [q] quit"}
         </Text>
       </Box>
     </Box>

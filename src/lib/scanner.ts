@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile, stat, unlink, rm } from "node:fs/promises";
 import { join, basename } from "node:path";
 import { homedir } from "node:os";
 
@@ -276,4 +276,43 @@ export function groupByProject(sessions: Session[]): ProjectSummary[] {
       lastActive: projectSessions[0]?.lastModified ?? new Date(0),
     }))
     .sort((a, b) => b.sessionCount - a.sessionCount);
+}
+
+export async function deleteSession(session: Session): Promise<boolean> {
+  let projectDirs: string[];
+  try {
+    projectDirs = await readdir(PROJECTS_DIR);
+  } catch {
+    return false;
+  }
+
+  let deleted = false;
+
+  for (const projDir of projectDirs) {
+    if (projectDisplayName(projDir) !== session.project) continue;
+
+    // Delete .jsonl file
+    const jsonlPath = join(PROJECTS_DIR, projDir, `${session.id}.jsonl`);
+    try {
+      await unlink(jsonlPath);
+      deleted = true;
+    } catch {
+      // file might not exist
+    }
+
+    // Delete session-env directory if exists
+    const sessionEnvPath = join(
+      homedir(),
+      ".claude",
+      "session-env",
+      session.id,
+    );
+    try {
+      await rm(sessionEnvPath, { recursive: true });
+    } catch {
+      // directory might not exist
+    }
+  }
+
+  return deleted;
 }
