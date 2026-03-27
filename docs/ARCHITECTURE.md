@@ -51,25 +51,6 @@ Readout 같은 웹 대시보드와 차별점:
 
 ## 파일 구조
 
-```
-src/
-├── index.tsx              # 진입점, 업데이트 체크, 에러 핸들러
-├── app.tsx                # 메인 App 컴포넌트 (상태 관리)
-├── types.d.ts             # update-notifier 타입
-├── components/
-│   ├── SessionList.tsx    # 세션 목록 (커서는 부모 관리)
-│   ├── ProjectList.tsx    # 프로젝트 목록 + 필터링
-│   ├── Preview.tsx        # 대화 미리보기 (word wrap)
-│   ├── Settings.tsx       # launch mode 설정
-│   ├── Help.tsx           # 키바인딩 도움말
-│   └── ErrorBoundary.tsx  # React 에러 바운더리
-└── lib/
-    ├── scanner.ts         # ~/.claude/ 스캐너, JSONL 파서
-    ├── launcher.ts        # 세션 재개 (inline/tmux/iTerm2/Terminal.app)
-    ├── bookmarks.ts       # 북마크 관리 (~/.config/claudash/)
-    └── keybindings.ts     # 키바인딩 중앙 레지스트리
-```
-
 ## 데이터 경로
 
 | 데이터 | 경로 | 형식 |
