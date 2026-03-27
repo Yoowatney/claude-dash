@@ -6,6 +6,7 @@ import type { Session, PreviewMessage } from "../lib/scanner.js";
 interface Props {
   session: Session;
   onClose: () => void;
+  demoData?: PreviewMessage[];
 }
 
 function wrapText(text: string, width: number): string[] {
@@ -59,12 +60,17 @@ function buildDisplayLines(
   return lines;
 }
 
-export default function Preview({ session, onClose }: Props) {
+export default function Preview({ session, onClose, demoData }: Props) {
   const [messages, setMessages] = useState<PreviewMessage[]>([]);
   const [scroll, setScroll] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (demoData) {
+      setMessages(demoData);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     getSessionPreview(session.id, session.project).then((result) => {
       setMessages(result);

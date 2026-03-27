@@ -16,6 +16,12 @@ import {
 import { resumeSession } from "./lib/launcher.js";
 import { toggleBookmark, getBookmarkedIds } from "./lib/bookmarks.js";
 import { getFooterText } from "./lib/keybindings.js";
+import {
+  demoSessions,
+  demoProjects,
+  demoBookmarkedIds,
+  demoPreviewData,
+} from "./lib/demo.js";
 import type { Session, ProjectSummary } from "./lib/scanner.js";
 
 type View = "sessions" | "projects" | "bookmarks" | "skills";
@@ -23,9 +29,10 @@ type View = "sessions" | "projects" | "bookmarks" | "skills";
 interface AppProps {
   version: string;
   updateInfo: { current: string; latest: string } | null;
+  demo?: boolean;
 }
 
-export default function App({ version, updateInfo }: AppProps) {
+export default function App({ version, updateInfo, demo }: AppProps) {
   const { exit } = useApp();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
@@ -47,6 +54,14 @@ export default function App({ version, updateInfo }: AppProps) {
   const [sessionCursor, setSessionCursor] = useState(0);
 
   useEffect(() => {
+    if (demo) {
+      setSessions(demoSessions);
+      setProjects(demoProjects);
+      setBookmarkedIds(demoBookmarkedIds);
+      setLoading(false);
+      setSelectedSession(demoSessions[0]);
+      return;
+    }
     setBookmarkedIds(getBookmarkedIds());
     scanSessions().then((result) => {
       setSessions(result);
@@ -60,6 +75,13 @@ export default function App({ version, updateInfo }: AppProps) {
   useEffect(() => {
     if (!filter.trim()) {
       setContentMatchIds(null);
+      setSearching(false);
+      return;
+    }
+
+    if (demo) {
+      // Demo: search only by title (no file access)
+      setContentMatchIds(new Set());
       setSearching(false);
       return;
     }
@@ -137,19 +159,26 @@ export default function App({ version, updateInfo }: AppProps) {
 
     if (confirmDelete && selectedSession) {
       if (input === "y" || input === "Y") {
-        deleteSession(selectedSession).then((ok) => {
-          if (ok) {
-            setSessions((prev) =>
-              prev.filter((s) => s.id !== selectedSession.id),
-            );
-            setProjects(
-              groupByProject(
-                sessions.filter((s) => s.id !== selectedSession.id),
-              ),
-            );
-          }
+        if (demo) {
+          setSessions((prev) =>
+            prev.filter((s) => s.id !== selectedSession.id),
+          );
           setConfirmDelete(false);
-        });
+        } else {
+          deleteSession(selectedSession).then((ok) => {
+            if (ok) {
+              setSessions((prev) =>
+                prev.filter((s) => s.id !== selectedSession.id),
+              );
+              setProjects(
+                groupByProject(
+                  sessions.filter((s) => s.id !== selectedSession.id),
+                ),
+              );
+            }
+            setConfirmDelete(false);
+          });
+        }
       } else {
         setConfirmDelete(false);
       }
@@ -199,8 +228,17 @@ export default function App({ version, updateInfo }: AppProps) {
       selectedSession &&
       (view === "sessions" || view === "bookmarks")
     ) {
-      toggleBookmark(selectedSession.id);
-      setBookmarkedIds(getBookmarkedIds());
+      if (demo) {
+        setBookmarkedIds((prev) => {
+          const next = new Set(prev);
+          if (next.has(selectedSession.id)) next.delete(selectedSession.id);
+          else next.add(selectedSession.id);
+          return next;
+        });
+      } else {
+        toggleBookmark(selectedSession.id);
+        setBookmarkedIds(getBookmarkedIds());
+      }
     }
     if (
       input === "d" &&
@@ -218,6 +256,20 @@ export default function App({ version, updateInfo }: AppProps) {
   });
 
   const handleSelect = (session: Session) => {
+    if (demo) {
+      exit();
+      setTimeout(() => {
+        const shortId = session.id.slice(0, 8);
+        process.stdout.write(`\x1b[2J\x1b[H`); // clear screen
+        process.stdout.write(`\n\x1b[1m  Claude Code\x1b[0m\n\n`);
+        process.stdout.write(`  \x1b[36mResuming session ${shortId}...\x1b[0m\n`);
+        process.stdout.write(`  \x1b[2m${session.projectPath}\x1b[0m\n\n`);
+        process.stdout.write(`  \x1b[33m>\x1b[0m ${session.firstMessage}\n\n`);
+        process.stdout.write(`  \x1b[2mClaude is thinking...\x1b[0m\n`);
+        setTimeout(() => process.exit(0), 3000);
+      }, 100);
+      return;
+    }
     exit();
     setTimeout(() => {
       resumeSession(session.id, session.projectPath);
@@ -266,6 +318,7 @@ export default function App({ version, updateInfo }: AppProps) {
       <Preview
         session={selectedSession}
         onClose={() => setShowPreview(false)}
+        demoData={demo ? demoPreviewData[selectedSession.id] : undefined}
       />
     );
   }

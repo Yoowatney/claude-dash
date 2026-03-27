@@ -6,6 +6,8 @@
 
 [English](README.md) | [한국어](README.ko.md)
 
+![claudive demo](demo.gif)
+
 ## 기능
 
 - **모든 세션을 한 화면에** — 프로젝트 구분 없이 전체 세션 조회

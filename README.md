@@ -6,6 +6,8 @@ Browse, search, preview, and resume your Claude Code sessions across **all proje
 
 [English](README.md) | [한국어](README.ko.md)
 
+![claudive demo](demo.gif)
+
 ## Features
 
 - **All sessions, one view** — See every session across all projects

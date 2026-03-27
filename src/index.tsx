@@ -66,6 +66,8 @@ const updateInfo =
     ? { current: pkg.version, latest: notifier.update.latest }
     : null;
 
+const isDemo = process.argv.includes("--demo");
+
 inkInstance = render(
   createElement(
     ErrorBoundary,
@@ -73,6 +75,7 @@ inkInstance = render(
     createElement(App, {
       version: pkg.version,
       updateInfo,
+      demo: isDemo,
     }),
   ),
 );
