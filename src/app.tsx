@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import TextInput from "ink-text-input";
 import SessionList from "./components/SessionList.js";
@@ -6,7 +6,6 @@ import ProjectList from "./components/ProjectList.js";
 import Preview from "./components/Preview.js";
 import Settings from "./components/Settings.js";
 import Help from "./components/Help.js";
-import SkillList from "./components/SkillList.js";
 import {
   scanSessions,
   groupByProject,
@@ -24,7 +23,7 @@ import {
 } from "./lib/demo.js";
 import type { Session, ProjectSummary } from "./lib/scanner.js";
 
-type View = "sessions" | "projects" | "bookmarks" | "skills";
+type View = "sessions" | "projects" | "bookmarks";
 
 interface AppProps {
   version: string;
@@ -69,7 +68,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
       setLoading(false);
       if (result.length > 0) setSelectedSession(result[0]);
     });
-  }, []);
+  }, [demo]);
 
   // Debounced content search
   useEffect(() => {
@@ -95,10 +94,10 @@ export default function App({ version, updateInfo, demo }: AppProps) {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [filter]);
+  }, [filter, demo]);
 
   // Filter sessions: project filter + text search (title OR content)
-  const filteredSessions = useCallback(() => {
+  const filteredSessions = useMemo(() => {
     let result = projectFilter
       ? sessions.filter((s) => s.project === projectFilter)
       : sessions;
@@ -106,14 +105,12 @@ export default function App({ version, updateInfo, demo }: AppProps) {
     if (filter.trim()) {
       const q = filter.toLowerCase();
       result = result.filter((s) => {
-        // Match on title
         if (
           s.project.toLowerCase().includes(q) ||
           s.firstMessage.toLowerCase().includes(q)
         ) {
           return true;
         }
-        // Match on content
         if (contentMatchIds?.has(s.id)) {
           return true;
         }
@@ -122,7 +119,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
     }
 
     return result;
-  }, [sessions, projectFilter, filter, contentMatchIds])();
+  }, [sessions, projectFilter, filter, contentMatchIds]);
 
   useInput((input, key) => {
     if (searchMode) {
@@ -143,18 +140,6 @@ export default function App({ version, updateInfo, demo }: AppProps) {
 
     if (showSettings || showHelp) {
       return;
-    }
-
-    if (view === "skills") {
-      // Only handle tab/quit in skills view, rest is handled by SkillList
-      if (key.tab || input === "?" || input === "s") {
-        // fall through to tab/settings/help handlers below
-      } else if (input === "q") {
-        exit();
-        return;
-      } else {
-        return;
-      }
     }
 
     if (confirmDelete && selectedSession) {
@@ -198,12 +183,10 @@ export default function App({ version, updateInfo, demo }: AppProps) {
     if (key.tab && key.shift) {
       setView((v) =>
         v === "sessions"
-          ? "skills"
-          : v === "skills"
-            ? "bookmarks"
-            : v === "bookmarks"
-              ? "projects"
-              : "sessions",
+          ? "bookmarks"
+          : v === "bookmarks"
+            ? "projects"
+            : "sessions",
       );
     } else if (key.tab) {
       setView((v) =>
@@ -211,9 +194,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
           ? "projects"
           : v === "projects"
             ? "bookmarks"
-            : v === "bookmarks"
-              ? "skills"
-              : "sessions",
+            : "sessions",
       );
     }
     if (
@@ -318,6 +299,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
       <Preview
         session={selectedSession}
         onClose={() => setShowPreview(false)}
+        onSelect={handleSelect}
         demoData={demo ? demoPreviewData[selectedSession.id] : undefined}
       />
     );
@@ -361,13 +343,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
           bold={view === "bookmarks"}
           color={view === "bookmarks" ? "yellow" : "gray"}
         >
-          [Bookmarks{bookmarkedIds.size > 0 ? ` ${bookmarkedIds.size}` : ""}]
-        </Text>
-        <Text
-          bold={view === "skills"}
-          color={view === "skills" ? "magenta" : "gray"}
-        >
-          [Skills]
+          [Bookmarks{(() => { const count = sessions.filter(s => bookmarkedIds.has(s.id)).length; return count > 0 ? ` ${count}` : ""; })()}]
         </Text>
         {projectFilter && <Text color="yellow"> ~ {projectFilter}</Text>}
       </Box>
@@ -404,11 +380,6 @@ export default function App({ version, updateInfo, demo }: AppProps) {
           filter={filter}
           bookmarkedIds={bookmarkedIds}
         />
-      )}
-
-      {/* Skills view */}
-      {view === "skills" && (
-        <SkillList onExit={() => setView("sessions")} />
       )}
 
       {/* Search bar */}

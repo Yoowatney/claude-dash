@@ -5,12 +5,11 @@ interface Props {
   onClose: () => void;
 }
 
-const VIEWS = ["sessions", "projects", "bookmarks", "skills", "preview"] as const;
+const VIEWS = ["sessions", "projects", "bookmarks", "preview"] as const;
 const VIEW_LABELS: Record<(typeof VIEWS)[number], string> = {
   sessions: "Sessions",
   projects: "Projects",
   bookmarks: "Bookmarks",
-  skills: "Skills",
   preview: "Preview",
 };
 
