@@ -123,6 +123,13 @@ export default function App({ version, updateInfo, demo }: AppProps) {
     return result;
   }, [sessions, projectFilter, filter, contentMatchIds]);
 
+  const bookmarkedSessions = useMemo(
+    () => sessions.filter((s) => bookmarkedIds.has(s.id)),
+    [sessions, bookmarkedIds],
+  );
+
+  const currentViewSessions = view === "bookmarks" ? bookmarkedSessions : filteredSessions;
+
   useInput((input, key) => {
     if (searchMode) {
       if (key.escape) {
@@ -202,6 +209,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
     if (
       input === "p" &&
       selectedSession &&
+      currentViewSessions.length > 0 &&
       (view === "sessions" || view === "bookmarks")
     ) {
       setShowPreview(true);
@@ -209,6 +217,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
     if (
       input === "b" &&
       selectedSession &&
+      currentViewSessions.length > 0 &&
       (view === "sessions" || view === "bookmarks")
     ) {
       if (demo) {
@@ -226,6 +235,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
     if (
       input === "d" &&
       selectedSession &&
+      currentViewSessions.length > 0 &&
       (view === "sessions" || view === "bookmarks")
     ) {
       setConfirmDelete(true);
@@ -371,7 +381,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
           bold={view === "bookmarks"}
           color={view === "bookmarks" ? "yellow" : "gray"}
         >
-          [Bookmarks{(() => { const count = sessions.filter(s => bookmarkedIds.has(s.id)).length; return count > 0 ? ` ${count}` : ""; })()}]
+          [Bookmarks{bookmarkedSessions.length > 0 ? ` ${bookmarkedSessions.length}` : ""}]
         </Text>
         {projectFilter && <Text color="yellow"> ~ {projectFilter}</Text>}
       </Box>
@@ -401,7 +411,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
       {/* Bookmarks view */}
       {view === "bookmarks" && (
         <SessionList
-          sessions={sessions.filter((s) => bookmarkedIds.has(s.id))}
+          sessions={bookmarkedSessions}
           cursor={sessionCursor}
           onCursorChange={handleCursorChange}
           onSelect={handleSelect}
