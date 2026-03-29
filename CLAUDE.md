@@ -21,6 +21,11 @@ npm 패키지로 배포 (`npx claudive`).
 - **데이터 소스**: `~/.claude/projects/` JSONL 파일 직접 파싱
 - **설정 저장**: `~/.config/claudash/config.json`
 
+## Task Tracking
+
+할 일은 GitHub Issues에서 관리: `gh issue list --repo Yoowatney/claudive`
+새 작업 시작 전 이슈 목록을 확인하고, 관련 이슈가 있으면 PR에 연결할 것.
+
 ## Superpowers Process Gates
 
 Claude MUST auto-size every task before starting work. Announce the size and required gates in the first response.
