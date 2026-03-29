@@ -53,7 +53,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
   const [showHelp, setShowHelp] = useState(false);
   const [sessionCursor, setSessionCursor] = useState(0);
   const [launchingSession, setLaunchingSession] = useState<Session | null>(null);
-  const [spinFrame, setSpinFrame] = useState(0);
+  const [animFrame, setAnimFrame] = useState(0);
   const [sortOrder, setSortOrder] = useState<SortOrder>("recent");
 
   useEffect(() => {
@@ -281,11 +281,18 @@ export default function App({ version, updateInfo, demo }: AppProps) {
     "~~≈~~~~",
   ];
 
+  // Wave animation for loading and launching
+  useEffect(() => {
+    if (!loading && !launchingSession) return;
+    const spin = setInterval(() => {
+      setAnimFrame((f) => (f + 1) % waveFrames.length);
+    }, 150);
+    return () => clearInterval(spin);
+  }, [loading, launchingSession]);
+
+  // Delayed launch after spinner shows
   useEffect(() => {
     if (!launchingSession) return;
-    const spin = setInterval(() => {
-      setSpinFrame((f) => (f + 1) % waveFrames.length);
-    }, 150);
     const launch = setTimeout(() => {
       exit();
       setTimeout(() => {
@@ -293,7 +300,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
           const shortId = launchingSession.id.slice(0, 8);
           process.stdout.write(`\x1b[2J\x1b[H`);
           process.stdout.write(`\n\x1b[1m  Claude Code\x1b[0m\n\n`);
-          process.stdout.write(`  \x1b[36m~≈~~≈~~ Diving into session ${shortId}...\x1b[0m\n`);
+          process.stdout.write(`  \x1b[36m🤿 Diving into session ${shortId}...\x1b[0m\n`);
           process.stdout.write(`  \x1b[2m${launchingSession.projectPath}\x1b[0m\n\n`);
           process.stdout.write(`  \x1b[33m>\x1b[0m ${launchingSession.firstMessage}\n\n`);
           process.stdout.write(`  \x1b[2mClaude is thinking...\x1b[0m\n`);
@@ -303,7 +310,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
         }
       }, 100);
     }, 500);
-    return () => { clearInterval(spin); clearTimeout(launch); };
+    return () => clearTimeout(launch);
   }, [launchingSession]);
 
   const handleSelect = (session: Session) => {
@@ -333,8 +340,14 @@ export default function App({ version, updateInfo, demo }: AppProps) {
 
   if (loading) {
     return (
-      <Box>
-        <Text color="cyan">~~ Scanning sessions...</Text>
+      <Box flexDirection="column" paddingTop={1}>
+        <Box>
+          <Text color="cyan">{waveFrames[animFrame].repeat(4)}</Text>
+        </Box>
+        <Box marginTop={1}>
+          <Text> 🤿 </Text>
+          <Text color="cyan">Scanning sessions...</Text>
+        </Box>
       </Box>
     );
   }
@@ -350,7 +363,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
   if (launchingSession) {
     return (
       <Box flexDirection="column" paddingTop={1}>
-        <Text color="cyan">{waveFrames[spinFrame].repeat(4)}</Text>
+        <Text color="cyan">{waveFrames[animFrame].repeat(4)}</Text>
         <Box marginTop={1}>
           <Text> 🤿 </Text>
           <Text color="cyan" bold>Diving into session...</Text>
@@ -360,7 +373,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
           <Text dimColor>{launchingSession.project} {launchingSession.id.slice(0, 8)}</Text>
         </Box>
         <Box marginTop={1}>
-          <Text color="cyan">{waveFrames[spinFrame].repeat(4)}</Text>
+          <Text color="cyan">{waveFrames[animFrame].repeat(4)}</Text>
         </Box>
       </Box>
     );
