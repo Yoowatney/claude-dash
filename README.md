@@ -1,10 +1,10 @@
-# claudive 🌊
+# claudive 🤿
+
+> **claude + dive = claudive**
 
 Dive into your [Claude Code](https://claude.ai/claude-code) sessions.
 
 Browse, search, preview, and resume your Claude Code sessions across **all projects** from a single terminal.
-
-`~~≈~~≈~~ claude + dive = claudive`
 
 [English](README.md) | [한국어](README.ko.md)
 
