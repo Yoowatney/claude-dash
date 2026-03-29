@@ -9,6 +9,7 @@ interface Props {
   onSelect: (session: Session) => void;
   filter: string;
   bookmarkedIds: Set<string>;
+  sortOrder?: "recent" | "messages";
 }
 
 function timeAgo(date: Date): string {
@@ -32,6 +33,7 @@ export default function SessionList({
   onSelect,
   filter,
   bookmarkedIds,
+  sortOrder = "recent",
 }: Props) {
   // Clamp cursor if sessions shrink (e.g. after delete)
   useEffect(() => {
@@ -101,7 +103,7 @@ export default function SessionList({
       })}
       <Box marginTop={1}>
         <Text dimColor>
-          {sessions.length} sessions | {cursor + 1}/{sessions.length}
+          {sessions.length} sessions | {cursor + 1}/{sessions.length} | ↓{sortOrder}
         </Text>
       </Box>
     </Box>

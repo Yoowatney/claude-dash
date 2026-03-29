@@ -24,6 +24,7 @@ import {
 import type { Session, ProjectSummary } from "./lib/scanner.js";
 
 type View = "sessions" | "projects" | "bookmarks";
+type SortOrder = "recent" | "messages";
 
 interface AppProps {
   version: string;
@@ -53,6 +54,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
   const [sessionCursor, setSessionCursor] = useState(0);
   const [launchingSession, setLaunchingSession] = useState<Session | null>(null);
   const [spinFrame, setSpinFrame] = useState(0);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("recent");
 
   useEffect(() => {
     if (demo) {
@@ -120,13 +122,20 @@ export default function App({ version, updateInfo, demo }: AppProps) {
       });
     }
 
-    return result;
-  }, [sessions, projectFilter, filter, contentMatchIds]);
+    if (sortOrder === "messages") {
+      result = [...result].sort((a, b) => b.messageCount - a.messageCount);
+    }
 
-  const bookmarkedSessions = useMemo(
-    () => sessions.filter((s) => bookmarkedIds.has(s.id)),
-    [sessions, bookmarkedIds],
-  );
+    return result;
+  }, [sessions, projectFilter, filter, contentMatchIds, sortOrder]);
+
+  const bookmarkedSessions = useMemo(() => {
+    const result = sessions.filter((s) => bookmarkedIds.has(s.id));
+    if (sortOrder === "messages") {
+      result.sort((a, b) => b.messageCount - a.messageCount);
+    }
+    return result;
+  }, [sessions, bookmarkedIds, sortOrder]);
 
   const currentViewSessions = view === "bookmarks" ? bookmarkedSessions : filteredSessions;
 
@@ -250,6 +259,10 @@ export default function App({ version, updateInfo, demo }: AppProps) {
       (view === "sessions" || view === "bookmarks")
     ) {
       setConfirmDelete(true);
+    }
+    if (input === "o" && (view === "sessions" || view === "bookmarks")) {
+      setSortOrder((s) => (s === "recent" ? "messages" : "recent"));
+      setSessionCursor(0);
     }
     if (input === "s" && !searchMode) {
       setShowSettings(true);
@@ -416,6 +429,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
           onSelect={handleSelect}
           filter={filter}
           bookmarkedIds={bookmarkedIds}
+          sortOrder={sortOrder}
         />
       )}
 
@@ -428,6 +442,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
           onSelect={handleSelect}
           filter={filter}
           bookmarkedIds={bookmarkedIds}
+          sortOrder={sortOrder}
         />
       )}
 
