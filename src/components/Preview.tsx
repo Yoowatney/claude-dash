@@ -65,7 +65,6 @@ function buildDisplayLines(
 export default function Preview({ session, onClose, onSelect, demoData }: Props) {
   const [messages, setMessages] = useState<PreviewMessage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [launching, setLaunching] = useState(false);
 
   useEffect(() => {
     if (demoData) {
@@ -89,60 +88,19 @@ export default function Preview({ session, onClose, onSelect, demoData }: Props)
     [messages, termWidth],
   );
 
-  const handleSelect = () => {
-    if (onSelect && !launching) {
-      setLaunching(true);
-    }
-  };
-
-  useEffect(() => {
-    if (!launching || !onSelect) return;
-    const timer = setTimeout(() => {
-      onSelect(session);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [launching]);
-
   const { scroll, scrollPct } = useScrollable({
     totalLines: displayLines.length,
     maxVisible,
     onClose,
-    onSelect: handleSelect,
+    onSelect: onSelect ? () => onSelect(session) : undefined,
   });
 
   const visible = displayLines.slice(scroll, scroll + maxVisible);
-
-  const [spinFrame, setSpinFrame] = useState(0);
-  const spinChars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-
-  useEffect(() => {
-    if (!launching) return;
-    const timer = setInterval(() => {
-      setSpinFrame((f) => (f + 1) % spinChars.length);
-    }, 80);
-    return () => clearInterval(timer);
-  }, [launching]);
 
   if (loading) {
     return (
       <Box flexDirection="column">
         <Text color="cyan">Loading preview...</Text>
-      </Box>
-    );
-  }
-
-  if (launching) {
-    return (
-      <Box flexDirection="column" paddingTop={1}>
-        <Box>
-          <Text color="cyan" bold>
-            {spinChars[spinFrame]} Resuming session...
-          </Text>
-        </Box>
-        <Box marginTop={1}>
-          <Text dimColor>{session.project}</Text>
-          <Text dimColor> {session.id.slice(0, 8)}</Text>
-        </Box>
       </Box>
     );
   }

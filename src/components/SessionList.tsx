@@ -5,7 +5,7 @@ import type { Session } from "../lib/scanner.js";
 interface Props {
   sessions: Session[];
   cursor: number;
-  onCursorChange: (cursor: number) => void;
+  onCursorChange: (cursor: number, session: Session) => void;
   onSelect: (session: Session) => void;
   filter: string;
   bookmarkedIds: Set<string>;
@@ -36,16 +36,19 @@ export default function SessionList({
   // Clamp cursor if sessions shrink (e.g. after delete)
   useEffect(() => {
     if (cursor >= sessions.length && sessions.length > 0) {
-      onCursorChange(sessions.length - 1);
+      const newIdx = sessions.length - 1;
+      onCursorChange(newIdx, sessions[newIdx]);
     }
   }, [sessions.length]);
 
   useInput((input, key) => {
     if (key.upArrow || (input === "k" && !filter)) {
-      onCursorChange(Math.max(0, cursor - 1));
+      const newIdx = Math.max(0, cursor - 1);
+      onCursorChange(newIdx, sessions[newIdx]);
     }
     if (key.downArrow || (input === "j" && !filter)) {
-      onCursorChange(Math.min(sessions.length - 1, cursor + 1));
+      const newIdx = Math.min(sessions.length - 1, cursor + 1);
+      onCursorChange(newIdx, sessions[newIdx]);
     }
     if (key.return && sessions[cursor]) {
       onSelect(sessions[cursor]);

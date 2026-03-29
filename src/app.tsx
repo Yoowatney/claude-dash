@@ -51,6 +51,8 @@ export default function App({ version, updateInfo, demo }: AppProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [sessionCursor, setSessionCursor] = useState(0);
+  const [launchingSession, setLaunchingSession] = useState<Session | null>(null);
+  const [spinFrame, setSpinFrame] = useState(0);
 
   useEffect(() => {
     if (demo) {
@@ -120,6 +122,13 @@ export default function App({ version, updateInfo, demo }: AppProps) {
 
     return result;
   }, [sessions, projectFilter, filter, contentMatchIds]);
+
+  const bookmarkedSessions = useMemo(
+    () => sessions.filter((s) => bookmarkedIds.has(s.id)),
+    [sessions, bookmarkedIds],
+  );
+
+  const currentViewSessions = view === "bookmarks" ? bookmarkedSessions : filteredSessions;
 
   useInput((input, key) => {
     if (searchMode) {
@@ -200,6 +209,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
     if (
       input === "p" &&
       selectedSession &&
+      currentViewSessions.length > 0 &&
       (view === "sessions" || view === "bookmarks")
     ) {
       setShowPreview(true);
@@ -207,6 +217,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
     if (
       input === "b" &&
       selectedSession &&
+      currentViewSessions.length > 0 &&
       (view === "sessions" || view === "bookmarks")
     ) {
       if (demo) {
@@ -218,12 +229,24 @@ export default function App({ version, updateInfo, demo }: AppProps) {
         });
       } else {
         toggleBookmark(selectedSession.id);
-        setBookmarkedIds(getBookmarkedIds());
+        const newIds = getBookmarkedIds();
+        setBookmarkedIds(newIds);
+        if (view === "bookmarks") {
+          const newList = sessions.filter((s) => newIds.has(s.id));
+          const newIdx = Math.min(sessionCursor, newList.length - 1);
+          if (newIdx >= 0) {
+            setSessionCursor(newIdx);
+            setSelectedSession(newList[newIdx]);
+          } else {
+            setSelectedSession(null);
+          }
+        }
       }
     }
     if (
       input === "d" &&
       selectedSession &&
+      currentViewSessions.length > 0 &&
       (view === "sessions" || view === "bookmarks")
     ) {
       setConfirmDelete(true);
@@ -236,32 +259,42 @@ export default function App({ version, updateInfo, demo }: AppProps) {
     }
   });
 
-  const handleSelect = (session: Session) => {
-    if (demo) {
+  const spinChars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+  useEffect(() => {
+    if (!launchingSession) return;
+    const spin = setInterval(() => {
+      setSpinFrame((f) => (f + 1) % spinChars.length);
+    }, 80);
+    const launch = setTimeout(() => {
       exit();
       setTimeout(() => {
-        const shortId = session.id.slice(0, 8);
-        process.stdout.write(`\x1b[2J\x1b[H`); // clear screen
-        process.stdout.write(`\n\x1b[1m  Claude Code\x1b[0m\n\n`);
-        process.stdout.write(`  \x1b[36mResuming session ${shortId}...\x1b[0m\n`);
-        process.stdout.write(`  \x1b[2m${session.projectPath}\x1b[0m\n\n`);
-        process.stdout.write(`  \x1b[33m>\x1b[0m ${session.firstMessage}\n\n`);
-        process.stdout.write(`  \x1b[2mClaude is thinking...\x1b[0m\n`);
-        setTimeout(() => process.exit(0), 3000);
+        if (demo) {
+          const shortId = launchingSession.id.slice(0, 8);
+          process.stdout.write(`\x1b[2J\x1b[H`);
+          process.stdout.write(`\n\x1b[1m  Claude Code\x1b[0m\n\n`);
+          process.stdout.write(`  \x1b[36mResuming session ${shortId}...\x1b[0m\n`);
+          process.stdout.write(`  \x1b[2m${launchingSession.projectPath}\x1b[0m\n\n`);
+          process.stdout.write(`  \x1b[33m>\x1b[0m ${launchingSession.firstMessage}\n\n`);
+          process.stdout.write(`  \x1b[2mClaude is thinking...\x1b[0m\n`);
+          setTimeout(() => process.exit(0), 3000);
+        } else {
+          resumeSession(launchingSession.id, launchingSession.projectPath);
+        }
       }, 100);
-      return;
+    }, 500);
+    return () => { clearInterval(spin); clearTimeout(launch); };
+  }, [launchingSession]);
+
+  const handleSelect = (session: Session) => {
+    if (!launchingSession) {
+      setLaunchingSession(session);
     }
-    exit();
-    setTimeout(() => {
-      resumeSession(session.id, session.projectPath);
-    }, 100);
   };
 
-  const handleCursorChange = (cursorIdx: number) => {
+  const handleCursorChange = (cursorIdx: number, session: Session) => {
     setSessionCursor(cursorIdx);
-    if (filteredSessions[cursorIdx]) {
-      setSelectedSession(filteredSessions[cursorIdx]);
-    }
+    setSelectedSession(session);
   };
 
   const handleProjectSelect = (project: ProjectSummary) => {
@@ -292,6 +325,22 @@ export default function App({ version, updateInfo, demo }: AppProps) {
 
   if (showHelp) {
     return <Help onClose={() => setShowHelp(false)} />;
+  }
+
+  if (launchingSession) {
+    return (
+      <Box flexDirection="column" paddingTop={1}>
+        <Box>
+          <Text color="cyan" bold>
+            {spinChars[spinFrame]} Resuming session...
+          </Text>
+        </Box>
+        <Box marginTop={1}>
+          <Text dimColor>{launchingSession.project}</Text>
+          <Text dimColor> {launchingSession.id.slice(0, 8)}</Text>
+        </Box>
+      </Box>
+    );
   }
 
   if (showPreview && selectedSession) {
@@ -343,7 +392,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
           bold={view === "bookmarks"}
           color={view === "bookmarks" ? "yellow" : "gray"}
         >
-          [Bookmarks{(() => { const count = sessions.filter(s => bookmarkedIds.has(s.id)).length; return count > 0 ? ` ${count}` : ""; })()}]
+          [Bookmarks{bookmarkedSessions.length > 0 ? ` ${bookmarkedSessions.length}` : ""}]
         </Text>
         {projectFilter && <Text color="yellow"> ~ {projectFilter}</Text>}
       </Box>
@@ -373,7 +422,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
       {/* Bookmarks view */}
       {view === "bookmarks" && (
         <SessionList
-          sessions={sessions.filter((s) => bookmarkedIds.has(s.id))}
+          sessions={bookmarkedSessions}
           cursor={sessionCursor}
           onCursorChange={handleCursorChange}
           onSelect={handleSelect}
