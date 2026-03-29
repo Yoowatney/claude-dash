@@ -345,7 +345,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
           <Text color="cyan">{waveFrames[animFrame].repeat(4)}</Text>
         </Box>
         <Box marginTop={1}>
-          <Text> 🤿 </Text>
+          <Text> 🫧 </Text>
           <Text color="cyan">Scanning sessions...</Text>
         </Box>
       </Box>
