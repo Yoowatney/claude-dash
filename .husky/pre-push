@@ -1,7 +1,15 @@
 branch="$(git rev-parse --abbrev-ref HEAD)"
 
-# Allow tag-only pushes (no branch ref)
-if [ "$branch" = "HEAD" ]; then
+# Read pushed refs from stdin to detect tag-only pushes
+tags_only=true
+while read local_ref local_oid remote_ref remote_oid; do
+  case "$remote_ref" in
+    refs/tags/*) ;;
+    *) tags_only=false ;;
+  esac
+done
+
+if [ "$tags_only" = true ]; then
   exit 0
 fi
 
