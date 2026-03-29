@@ -1,5 +1,10 @@
 branch="$(git rev-parse --abbrev-ref HEAD)"
 
+# Allow tag-only pushes (no branch ref)
+if [ "$branch" = "HEAD" ]; then
+  exit 0
+fi
+
 if [ "$branch" = "main" ]; then
   echo "🚫 Direct push to main is not allowed. Use a feature branch and PR."
   exit 1
