@@ -300,7 +300,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
           const shortId = launchingSession.id.slice(0, 8);
           process.stdout.write(`\x1b[2J\x1b[H`);
           process.stdout.write(`\n\x1b[1m  Claude Code\x1b[0m\n\n`);
-          process.stdout.write(`  \x1b[36m🤿 Diving into session ${shortId}...\x1b[0m\n`);
+          process.stdout.write(`  \x1b[36m~≈~ Diving into session ${shortId}...\x1b[0m\n`);
           process.stdout.write(`  \x1b[2m${launchingSession.projectPath}\x1b[0m\n\n`);
           process.stdout.write(`  \x1b[33m>\x1b[0m ${launchingSession.firstMessage}\n\n`);
           process.stdout.write(`  \x1b[2mClaude is thinking...\x1b[0m\n`);
