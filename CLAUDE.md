@@ -13,32 +13,6 @@ npm 패키지로 배포 (`npx claudive`).
 | `node dist/index.js --demo` | 데모 모드 실행 |
 | `npx tsc --noEmit` | 타입 체크만 (빌드 없이) |
 
-## Architecture
-
-```
-src/
-├── index.tsx          — 진입점 (CLI args 파싱, Ink render)
-├── app.tsx            — 메인 앱 (탭 라우팅, 키바인딩)
-├── types.d.ts         — 공유 타입
-├── components/
-│   ├── SessionList.tsx — 세션 목록 (메인 뷰)
-│   ├── ProjectList.tsx — 프로젝트 필터링
-│   ├── Preview.tsx     — 대화 프리뷰 (vim 스크롤)
-│   ├── SkillList.tsx   — 스킬 탐색/편집
-│   ├── Settings.tsx    — 설정 (launch mode)
-│   ├── Help.tsx        — 키바인딩 도움말
-│   └── ErrorBoundary.tsx
-├── hooks/
-│   └── useScrollable.ts — 스크롤 훅 (vim 키바인딩)
-└── lib/
-    ├── scanner.ts      — ~/.claude/projects/ 파싱
-    ├── launcher.ts     — 세션 재개 (tmux/iTerm2/Terminal.app)
-    ├── bookmarks.ts    — 북마크 관리
-    ├── skills.ts       — 스킬 파일 탐색
-    ├── keybindings.ts  — 키 입력 처리
-    └── demo.ts         — 데모 데이터 생성
-```
-
 ## Conventions
 
 - **Ink 컴포넌트**: React 19 + Ink 6 — `<Box>`, `<Text>`, `useInput()`, `useApp()`
