@@ -2,3 +2,5 @@ src/
 tsconfig.json
 .gitignore
 *.tsbuildinfo
+CLAUDE.md
+.husky/
