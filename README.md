@@ -1,4 +1,6 @@
-# claudive
+# claudive 🤿
+
+> **claude + dive = claudive**
 
 Dive into your [Claude Code](https://claude.ai/claude-code) sessions.
 

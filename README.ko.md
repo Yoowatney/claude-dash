@@ -1,4 +1,6 @@
-# claudive
+# claudive 🤿
+
+> **claude + dive = claudive**
 
 [Claude Code](https://claude.ai/claude-code) 세션 속으로 다이브.
 
