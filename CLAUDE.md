@@ -1,30 +1,30 @@
 # Claudive
 
-Ink(React) 기반 TUI — Claude Code 세션을 탐색, 검색, 프리뷰, 재개하는 CLI 도구.
-npm 패키지로 배포 (`npx claudive`).
+Ink(React)-based TUI for browsing, searching, previewing, and resuming Claude Code sessions.
+Published as npm package (`npx claudive`).
 
 ## Commands
 
 | Command | Purpose |
 |---------|---------|
-| `npm run build` | TypeScript 컴파일 (`tsc`) |
-| `npm run dev` | Watch 모드 (`tsc --watch`) |
-| `node dist/index.js` | 빌드된 앱 실행 |
-| `node dist/index.js --demo` | 데모 모드 실행 |
-| `npx tsc --noEmit` | 타입 체크만 (빌드 없이) |
+| `npm run build` | TypeScript compile (`tsc`) |
+| `npm run dev` | Watch mode (`tsc --watch`) |
+| `node dist/index.js` | Run built app |
+| `node dist/index.js --demo` | Run in demo mode |
+| `npx tsc --noEmit` | Type check only (no build) |
 
 ## Conventions
 
-- **Ink 컴포넌트**: React 19 + Ink 6 — `<Box>`, `<Text>`, `useInput()`, `useApp()`
-- **키바인딩**: vim 스타일 (j/k 이동, u/d 페이지, g/G 처음/끝)
-- **상태 관리**: React useState만 사용 (외부 상태관리 없음)
-- **데이터 소스**: `~/.claude/projects/` JSONL 파일 직접 파싱
-- **설정 저장**: `~/.config/claudash/config.json`
+- **Ink components**: React 19 + Ink 6 — `<Box>`, `<Text>`, `useInput()`, `useApp()`
+- **Keybindings**: vim-style (j/k navigate, u/d page, g/G top/bottom)
+- **State management**: React useState only (no external state libs)
+- **Data source**: `~/.claude/projects/` JSONL files parsed directly
+- **Config storage**: `~/.config/claudash/config.json`
 
 ## Task Tracking
 
-할 일은 GitHub Issues에서 관리: `gh issue list --repo Yoowatney/claudive`
-새 작업 시작 전 이슈 목록을 확인하고, 관련 이슈가 있으면 PR에 연결할 것.
+Tasks are tracked in GitHub Issues: `gh issue list --repo Yoowatney/claudive`
+Check the issue list before starting new work. Link related issues to PRs.
 
 ## Superpowers Process Gates
 
