@@ -229,7 +229,18 @@ export default function App({ version, updateInfo, demo }: AppProps) {
         });
       } else {
         toggleBookmark(selectedSession.id);
-        setBookmarkedIds(getBookmarkedIds());
+        const newIds = getBookmarkedIds();
+        setBookmarkedIds(newIds);
+        if (view === "bookmarks") {
+          const newList = sessions.filter((s) => newIds.has(s.id));
+          const newIdx = Math.min(sessionCursor, newList.length - 1);
+          if (newIdx >= 0) {
+            setSessionCursor(newIdx);
+            setSelectedSession(newList[newIdx]);
+          } else {
+            setSelectedSession(null);
+          }
+        }
       }
     }
     if (
