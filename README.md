@@ -12,9 +12,10 @@ Browse, search, preview, and resume your Claude Code sessions across **all proje
 
 - **All sessions, one view** — See every session across all projects
 - **Full-text search** — Search through conversation content, not just titles
-- **Conversation preview** — Read full conversations with word wrap and vim-style scrolling
-- **Session resume** — Press Enter to resume any session in your terminal
+- **Conversation preview** — Read full conversations with vim-style scrolling, resume directly with Enter
+- **Session resume** — Press Enter to resume any session, with visual spinner feedback
 - **Bookmarks** — Star important sessions for quick access
+- **Sort** — Sort by recent activity or message count
 - **Project filtering** — Filter sessions by project
 - **Session cleanup** — Delete old sessions you no longer need
 - **Auto-detect terminal** — Works with tmux, iTerm2, Terminal.app, and any terminal
@@ -47,8 +48,8 @@ claudive — Dive into your Claude Code sessions  (42 sessions, 5 projects)
   my-app         Refactor auth middleware...                   2d ago
   infra          Set up CI/CD pipeline with GitHub Actions...  5d ago
 
-42 sessions | 1/42
-[Enter] Resume  [p] Preview  [b] Bookmark  [/] Search  [Tab] Next view  [?] Help  [q] Quit
+42 sessions | 1/42 | ↓recent
+[Enter] Resume  [p] Preview  [o] Sort  [/] Search  [Tab] Next view  [?] Help  [q] Quit
 ```
 
 ### Preview Mode
@@ -67,7 +68,7 @@ You:  Good. Also check if the session token expiry is correct
 AI:   Found the issue - the token expiry was set to 24h
       but the refresh logic wasn't accounting for timezone...
 
-100% [j/k] line [u/d] page [g/G] top/bottom [p/Esc] back
+100% [j/k] line [u/d] page [g/G] top/bottom [Enter] resume [p/Esc] back
 ```
 
 ### Keybindings
@@ -77,6 +78,7 @@ AI:   Found the issue - the token expiry was set to 24h
 | `j` / `k` / `↑` / `↓` | Navigate sessions |
 | `Enter` | Resume selected session |
 | `p` | Preview conversation |
+| `o` | Sort: recent ↔ messages |
 | `b` | Toggle bookmark |
 | `d` | Delete session (with confirmation) |
 | `/` | Search (titles + conversation content) |
@@ -92,6 +94,7 @@ AI:   Found the issue - the token expiry was set to 24h
 | `j` / `k` | Scroll line by line |
 | `u` / `d` | Page up / down |
 | `g` / `G` | Jump to top / bottom |
+| `Enter` | Resume this session |
 | `p` / `Esc` | Back to session list |
 
 ## Session Resume
