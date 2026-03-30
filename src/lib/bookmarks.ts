@@ -5,7 +5,7 @@ import { homedir } from "node:os";
 const BOOKMARKS_PATH = join(
   homedir(),
   ".config",
-  "claudash",
+  "claudive",
   "bookmarks.json",
 );
 
@@ -28,7 +28,7 @@ function load(): BookmarkData {
 }
 
 function save(data: BookmarkData): void {
-  const dir = join(homedir(), ".config", "claudash");
+  const dir = join(homedir(), ".config", "claudive");
   try {
     mkdirSync(dir, { recursive: true });
     writeFileSync(BOOKMARKS_PATH, JSON.stringify(data, null, 2));

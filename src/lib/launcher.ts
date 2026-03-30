@@ -9,7 +9,7 @@ interface Config {
   launchMode: LaunchMode;
 }
 
-const CONFIG_PATH = join(homedir(), ".config", "claudash", "config.json");
+const CONFIG_PATH = join(homedir(), ".config", "claudive", "config.json");
 
 function loadConfig(): Config {
   try {
@@ -31,7 +31,7 @@ function detectMode(): LaunchMode {
 }
 
 function saveConfig(config: Config): void {
-  const dir = join(homedir(), ".config", "claudash");
+  const dir = join(homedir(), ".config", "claudive");
   try {
     mkdirSync(dir, { recursive: true });
     writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));

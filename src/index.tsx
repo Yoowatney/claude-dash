@@ -66,6 +66,10 @@ const updateInfo =
     ? { current: pkg.version, latest: notifier.update.latest }
     : null;
 
+// Migrate from old config directory (~/.config/claudash → ~/.config/claudive)
+import { migrateConfig } from "./lib/migrate.js";
+migrateConfig();
+
 const isDemo = process.argv.includes("--demo");
 
 inkInstance = render(
