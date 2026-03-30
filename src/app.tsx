@@ -12,7 +12,7 @@ import {
   searchSessionContent,
   deleteSession,
 } from "./lib/scanner.js";
-import { resumeSession } from "./lib/launcher.js";
+import { resumeSession, type ResumeMode } from "./lib/launcher.js";
 import { toggleBookmark, getBookmarkedIds } from "./lib/bookmarks.js";
 import { getFooterText } from "./lib/keybindings.js";
 import {
@@ -53,6 +53,9 @@ export default function App({ version, updateInfo, demo }: AppProps) {
   const [showHelp, setShowHelp] = useState(false);
   const [sessionCursor, setSessionCursor] = useState(0);
   const [launchingSession, setLaunchingSession] = useState<Session | null>(null);
+  const [launchMode, setLaunchMode] = useState<ResumeMode>("just-dive");
+  const [showResumeMenu, setShowResumeMenu] = useState(false);
+  const [resumeMenuCursor, setResumeMenuCursor] = useState(0);
   const [animFrame, setAnimFrame] = useState(0);
   const [sortOrder, setSortOrder] = useState<SortOrder>("recent");
 
@@ -139,7 +142,35 @@ export default function App({ version, updateInfo, demo }: AppProps) {
 
   const currentViewSessions = view === "bookmarks" ? bookmarkedSessions : filteredSessions;
 
+  const resumeOptions: { mode: ResumeMode; label: string; desc: string }[] = [
+    { mode: "just-dive", label: "Just dive", desc: "--resume" },
+    { mode: "yolo-dive", label: "Yolo dive", desc: "--dangerously-skip-permissions" },
+    { mode: "fork-dive", label: "Fork & dive", desc: "--fork-session" },
+  ];
+
   useInput((input, key) => {
+    if (showResumeMenu) {
+      if (key.escape) {
+        setShowResumeMenu(false);
+        return;
+      }
+      if (key.upArrow || input === "k") {
+        setResumeMenuCursor((c) => Math.max(0, c - 1));
+        return;
+      }
+      if (key.downArrow || input === "j") {
+        setResumeMenuCursor((c) => Math.min(resumeOptions.length - 1, c + 1));
+        return;
+      }
+      if (key.return && selectedSession) {
+        setLaunchMode(resumeOptions[resumeMenuCursor].mode);
+        setShowResumeMenu(false);
+        setLaunchingSession(selectedSession);
+        return;
+      }
+      return;
+    }
+
     if (searchMode) {
       if (key.escape) {
         setSearchMode(false);
@@ -306,7 +337,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
           process.stdout.write(`  \x1b[2mClaude is thinking...\x1b[0m\n`);
           setTimeout(() => process.exit(0), 3000);
         } else {
-          resumeSession(launchingSession.id, launchingSession.projectPath);
+          resumeSession(launchingSession.id, launchingSession.projectPath, launchMode);
         }
       }, 100);
     }, 500);
@@ -314,8 +345,10 @@ export default function App({ version, updateInfo, demo }: AppProps) {
   }, [launchingSession]);
 
   const handleSelect = (session: Session) => {
-    if (!launchingSession) {
-      setLaunchingSession(session);
+    if (!launchingSession && !showResumeMenu) {
+      setSelectedSession(session);
+      setShowResumeMenu(true);
+      setResumeMenuCursor(0);
     }
   };
 
@@ -358,6 +391,33 @@ export default function App({ version, updateInfo, demo }: AppProps) {
 
   if (showHelp) {
     return <Help onClose={() => setShowHelp(false)} />;
+  }
+
+  if (showResumeMenu && selectedSession) {
+    return (
+      <Box flexDirection="column" paddingTop={1}>
+        <Box>
+          <Text bold color="cyan">Dive options</Text>
+          <Text dimColor>  {selectedSession.project} {selectedSession.id.slice(0, 8)}</Text>
+        </Box>
+        <Box marginTop={1} flexDirection="column">
+          {resumeOptions.map((opt, i) => (
+            <Box key={opt.mode}>
+              <Text color={i === resumeMenuCursor ? "cyan" : "gray"} bold={i === resumeMenuCursor}>
+                {i === resumeMenuCursor ? " ▶ " : "   "}
+              </Text>
+              <Text color={i === resumeMenuCursor ? "white" : "gray"} bold={i === resumeMenuCursor}>
+                {opt.label}
+              </Text>
+              <Text dimColor>  ({opt.desc})</Text>
+            </Box>
+          ))}
+        </Box>
+        <Box marginTop={1}>
+          <Text dimColor>[j/k] select  [Enter] confirm  [Esc] cancel</Text>
+        </Box>
+      </Box>
+    );
   }
 
   if (launchingSession) {
