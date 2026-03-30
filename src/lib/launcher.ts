@@ -87,17 +87,30 @@ function launchTerminalApp(sessionId: string, projectPath: string): void {
   }
 }
 
-function launchInline(sessionId: string, projectPath: string): void {
-  process.chdir(projectPath);
-  spawnSync("claude", ["--resume", sessionId], { stdio: "inherit" });
+type ResumeMode = "just-dive" | "yolo-dive" | "fork-dive";
+
+function buildArgs(sessionId: string, mode: ResumeMode): string[] {
+  const args = ["--resume", sessionId];
+  if (mode === "yolo-dive") {
+    args.push("--dangerously-skip-permissions");
+  }
+  if (mode === "fork-dive") {
+    args.push("--fork-session");
+  }
+  return args;
 }
 
-export function resumeSession(sessionId: string, projectPath: string): void {
+function launchInline(sessionId: string, projectPath: string, mode: ResumeMode): void {
+  process.chdir(projectPath);
+  spawnSync("claude", buildArgs(sessionId, mode), { stdio: "inherit" });
+}
+
+export function resumeSession(sessionId: string, projectPath: string, mode: ResumeMode = "just-dive"): void {
   const config = loadConfig();
 
   switch (config.launchMode) {
     case "inline":
-      launchInline(sessionId, projectPath);
+      launchInline(sessionId, projectPath, mode);
       break;
     case "tmux":
       launchTmux(sessionId, projectPath);
@@ -109,12 +122,14 @@ export function resumeSession(sessionId: string, projectPath: string): void {
       launchTerminalApp(sessionId, projectPath);
       break;
     case "print":
-    default:
+    default: {
+      const args = buildArgs(sessionId, mode).join(" ");
       console.log(
-        `\n  cd "${projectPath}" && claude --resume "${sessionId}"\n`,
+        `\n  cd "${projectPath}" && claude ${args}\n`,
       );
       break;
+    }
   }
 }
 
-export { type LaunchMode, type Config, CONFIG_PATH, loadConfig, saveConfig };
+export { type LaunchMode, type ResumeMode, type Config, CONFIG_PATH, loadConfig, saveConfig };
