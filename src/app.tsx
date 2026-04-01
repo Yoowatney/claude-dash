@@ -13,7 +13,7 @@ import {
   deleteSession,
 } from "./lib/scanner.js";
 import { resumeSession, type ResumeMode } from "./lib/launcher.js";
-import { toggleBookmark, getBookmarkedIds } from "./lib/bookmarks.js";
+import { toggleBookmark, getBookmarkedIds, setBookmarkLabel, getBookmarkLabels } from "./lib/bookmarks.js";
 import { getFooterText } from "./lib/keybindings.js";
 import {
   demoSessions,
@@ -59,6 +59,9 @@ export default function App({ version, updateInfo, demo }: AppProps) {
   const [resumeMenuCursor, setResumeMenuCursor] = useState(0);
   const [animFrame, setAnimFrame] = useState(0);
   const [sortOrder, setSortOrder] = useState<SortOrder>("recent");
+  const [bookmarkLabels, setBookmarkLabels] = useState<Record<string, string>>({});
+  const [labelInput, setLabelInput] = useState(false);
+  const [labelText, setLabelText] = useState("");
   const [demoSubtitle, setDemoSubtitle] = useState<string | null>(null);
   const demoStartRef = useRef(Date.now());
   const suppressInputRef = useRef(false);
@@ -75,6 +78,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
       return;
     }
     setBookmarkedIds(getBookmarkedIds());
+    setBookmarkLabels(getBookmarkLabels());
     scanSessions().then((result) => {
       setSessions(result);
       setProjects(groupByProject(result));
@@ -170,6 +174,22 @@ export default function App({ version, updateInfo, demo }: AppProps) {
   ];
 
   useInput((input, key) => {
+    if (labelInput) {
+      if (key.return) {
+        if (selectedSession && !demo) {
+          setBookmarkLabel(selectedSession.id, labelText);
+          setBookmarkLabels(getBookmarkLabels());
+        }
+        setLabelInput(false);
+        setLabelText("");
+      }
+      if (key.escape) {
+        setLabelInput(false);
+        setLabelText("");
+      }
+      return;
+    }
+
     if (showResumeMenu) {
       if (key.escape) {
         setShowResumeMenu(false);
@@ -306,10 +326,18 @@ export default function App({ version, updateInfo, demo }: AppProps) {
           return next;
         });
       } else {
+        const wasBookmarked = bookmarkedIds.has(selectedSession.id);
         toggleBookmark(selectedSession.id);
         const newIds = getBookmarkedIds();
         setBookmarkedIds(newIds);
-        if (view === "bookmarks") {
+        setBookmarkLabels(getBookmarkLabels());
+        if (!wasBookmarked) {
+          // Just bookmarked — prompt for label
+          setLabelInput(true);
+          setLabelText("");
+        }
+        if (view === "bookmarks" && wasBookmarked) {
+          // Unbookmarked in bookmarks view — update cursor
           const newList = sessions.filter((s) => newIds.has(s.id));
           const newIdx = Math.min(sessionCursor, newList.length - 1);
           if (newIdx >= 0) {
@@ -576,6 +604,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
           onSelect={handleSelect}
           searchMode={searchMode}
           bookmarkedIds={bookmarkedIds}
+          bookmarkLabels={bookmarkLabels}
           sortOrder={sortOrder}
         />
       )}
@@ -589,6 +618,7 @@ export default function App({ version, updateInfo, demo }: AppProps) {
           onSelect={handleSelect}
           searchMode={searchMode}
           bookmarkedIds={bookmarkedIds}
+          bookmarkLabels={bookmarkLabels}
           sortOrder={sortOrder}
         />
       )}
@@ -603,6 +633,14 @@ export default function App({ version, updateInfo, demo }: AppProps) {
             }
           }} />
           {searching && <Text color="gray"> searching...</Text>}
+        </Box>
+      )}
+
+      {/* Bookmark label input */}
+      {labelInput && selectedSession && (
+        <Box marginTop={1}>
+          <Text color="yellow">Label: </Text>
+          <TextInput value={labelText} onChange={setLabelText} placeholder="optional — Enter to skip" />
         </Box>
       )}
 

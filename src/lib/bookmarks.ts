@@ -57,3 +57,22 @@ export function toggleBookmark(sessionId: string): boolean {
 export function getBookmarkedIds(): Set<string> {
   return new Set(Object.keys(load()));
 }
+
+export function setBookmarkLabel(sessionId: string, label: string): void {
+  const data = load();
+  if (sessionId in data) {
+    data[sessionId].label = label || undefined;
+    save(data);
+  }
+}
+
+export function getBookmarkLabels(): Record<string, string> {
+  const data = load();
+  const labels: Record<string, string> = {};
+  for (const [id, entry] of Object.entries(data)) {
+    if (entry.label) {
+      labels[id] = entry.label;
+    }
+  }
+  return labels;
+}

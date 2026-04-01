@@ -9,6 +9,7 @@ interface Props {
   onSelect: (session: Session) => void;
   searchMode: boolean;
   bookmarkedIds: Set<string>;
+  bookmarkLabels?: Record<string, string>;
   sortOrder?: "recent" | "messages";
 }
 
@@ -33,6 +34,7 @@ export default function SessionList({
   onSelect,
   searchMode,
   bookmarkedIds,
+  bookmarkLabels = {},
   sortOrder = "recent",
 }: Props) {
   // Clamp cursor if sessions shrink (e.g. after delete)
@@ -84,6 +86,7 @@ export default function SessionList({
                 : "cyan";
 
         const isBookmarked = bookmarkedIds.has(session.id);
+        const label = bookmarkLabels[session.id];
 
         return (
           <Box key={session.id}>
@@ -97,6 +100,7 @@ export default function SessionList({
               {" "}
               {session.firstMessage.slice(0, 50).padEnd(50)}
             </Text>
+            {label && <Text color="yellow"> [{label}]</Text>}
             <Text dimColor> {timeAgo(session.lastModified).padStart(10)}</Text>
           </Box>
         );
