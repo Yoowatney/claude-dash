@@ -13,6 +13,7 @@ const keybindings: Keybinding[] = [
   { key: "p/Esc", action: "Back", views: ["preview"], showInFooter: true },
   { key: "o", action: "Sort", views: ["sessions", "bookmarks"], showInFooter: true },
   { key: "b", action: "Bookmark", views: ["sessions", "bookmarks"] },
+  { key: "r", action: "Label", views: ["sessions", "bookmarks"] },
   { key: "d", action: "Delete", views: ["sessions", "bookmarks"] },
   { key: "/", action: "Search", views: ["sessions"], showInFooter: true },
   { key: "u/d", action: "Page up/down", views: ["preview"] },
