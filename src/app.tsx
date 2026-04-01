@@ -187,6 +187,11 @@ export default function App({ version, updateInfo, demo }: AppProps) {
         setLabelInput(false);
         setLabelText("");
       }
+      if (key.ctrl && input === "u") {
+        setLabelText("");
+        suppressInputRef.current = true;
+        setTimeout(() => { suppressInputRef.current = false; }, 100);
+      }
       return;
     }
 
@@ -648,7 +653,11 @@ export default function App({ version, updateInfo, demo }: AppProps) {
       {labelInput && selectedSession && (
         <Box marginTop={1}>
           <Text color="yellow">Label: </Text>
-          <TextInput value={labelText} onChange={setLabelText} placeholder="optional — Enter to skip" />
+          <TextInput value={labelText} onChange={(val) => {
+            if (!suppressInputRef.current) {
+              setLabelText(val);
+            }
+          }} placeholder="optional — Enter to skip" />
         </Box>
       )}
 
