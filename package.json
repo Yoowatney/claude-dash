@@ -1,6 +1,6 @@
 {
   "name": "claudive",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Dive into your Claude Code sessions. Browse, search, preview, and resume across all projects from a single terminal.",
   "type": "module",
   "bin": {
