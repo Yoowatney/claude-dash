@@ -304,9 +304,7 @@ export async function deleteSession(session: Session): Promise<boolean> {
   let deleted = false;
 
   for (const projDir of projectDirs) {
-    if (projectDisplayName(projDir) !== session.project) continue;
-
-    // Delete .jsonl file
+    // Find session file by ID directly
     const jsonlPath = join(PROJECTS_DIR, projDir, `${session.id}.jsonl`);
     try {
       await unlink(jsonlPath);
