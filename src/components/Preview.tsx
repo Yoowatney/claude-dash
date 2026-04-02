@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Box, Text } from "ink";
-import { getSessionPreview } from "../lib/scanner.js";
+import { getSessionPreview, type ToolStats } from "../lib/scanner.js";
 import { useScrollable } from "../hooks/useScrollable.js";
 import type { Session, PreviewMessage } from "../lib/scanner.js";
 
@@ -63,8 +63,44 @@ function buildDisplayLines(
   return lines;
 }
 
+function classifySession(stats: ToolStats): string {
+  const total = Object.values(stats).reduce((a, b) => a + b, 0);
+  if (total === 0) return "💬 Conversation";
+
+  const get = (name: string) => stats[name] || 0;
+  const edit = get("Edit") + get("Write");
+  const bash = get("Bash");
+  const read = get("Read") + get("Grep") + get("Glob");
+  const write = get("Write");
+  const agent = get("Agent");
+  const skill = get("Skill");
+  const notebook = get("NotebookEdit");
+  const web = get("WebFetch") + get("WebSearch");
+
+  const top3 = Object.entries(stats)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 3)
+    .map(([name, count]) => `${name}:${count}`)
+    .join(" ");
+
+  if (total < 5) return `💬 Conversation (${top3})`;
+  if (notebook > 0) return `📓 Notebook work (${top3})`;
+  if (web > 0) return `🌐 Web research (${top3})`;
+  if (skill > 0 && skill >= total * 0.3) return `⚡ Skill execution (${top3})`;
+  if (agent > 0 && agent >= total * 0.1) return `🤖 Agentic workflow (${top3})`;
+  if (write > get("Edit")) return `📝 File creation (${top3})`;
+  if (read > edit && read > bash) return `🔍 Code exploration (${top3})`;
+  if (edit > bash && edit > read) return `🔨 Code editing (${top3})`;
+  if (bash > edit && bash > read) return `🐛 Debugging / Building (${top3})`;
+  if (Math.abs(edit - bash) / Math.max(edit, bash, 1) < 0.2) return `🔄 Build & iterate (${top3})`;
+
+  return `🔧 Mixed (${top3})`;
+}
+
 export default function Preview({ session, onClose, onSelect, demoData, demoSubtitle }: Props) {
   const [messages, setMessages] = useState<PreviewMessage[]>([]);
+  const [toolStats, setToolStats] = useState<ToolStats>({});
+  const [model, setModel] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -75,7 +111,9 @@ export default function Preview({ session, onClose, onSelect, demoData, demoSubt
     }
     setLoading(true);
     getSessionPreview(session.id, session.project).then((result) => {
-      setMessages(result);
+      setMessages(result.messages);
+      setToolStats(result.toolStats);
+      setModel(result.model);
       setLoading(false);
     });
   }, [session.id, session.project, demoData]);
@@ -117,6 +155,12 @@ export default function Preview({ session, onClose, onSelect, demoData, demoSubt
         <Text dimColor> {session.id.slice(0, 8)}...</Text>
         <Text dimColor>
           {"  "}{messages.length} messages
+        </Text>
+        {model && <Text dimColor>{"  "}{model.replace("claude-", "")}</Text>}
+      </Box>
+      <Box>
+        <Text dimColor>
+          {classifySession(toolStats)}
         </Text>
       </Box>
 
