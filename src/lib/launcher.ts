@@ -100,8 +100,30 @@ function buildArgs(sessionId: string, mode: ResumeMode): string[] {
   return args;
 }
 
+function resolveProjectPath(projectPath: string): string {
+  if (existsSync(projectPath)) return projectPath;
+
+  // Worktree path may be deleted — try to find the main repo
+  // Worktree paths typically look like /repo/.worktrees/name or /tmp/cc-worktree-xxx
+  const parts = projectPath.split("/");
+  const wtIdx = parts.findIndex((p) => p === ".worktrees" || p.startsWith("cc-worktree"));
+  if (wtIdx > 0) {
+    const mainRepo = parts.slice(0, wtIdx).join("/");
+    if (existsSync(mainRepo)) return mainRepo;
+  }
+
+  return projectPath;
+}
+
 function launchInline(sessionId: string, projectPath: string, mode: ResumeMode): void {
-  process.chdir(projectPath);
+  const resolved = resolveProjectPath(projectPath);
+  try {
+    process.chdir(resolved);
+  } catch {
+    console.error(`\n  Directory not found: ${projectPath}`);
+    console.error(`  The worktree may have been deleted.\n`);
+    return;
+  }
   spawnSync("claude", buildArgs(sessionId, mode), { stdio: "inherit" });
 }
 

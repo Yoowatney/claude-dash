@@ -1,4 +1,5 @@
 import { readdir, readFile, stat, unlink, rm } from "node:fs/promises";
+import { statSync } from "node:fs";
 import { join, basename } from "node:path";
 import { homedir } from "node:os";
 
@@ -22,7 +23,38 @@ const CLAUDE_DIR = join(homedir(), ".claude");
 const PROJECTS_DIR = join(CLAUDE_DIR, "projects");
 
 function decodeProjectPath(encoded: string): string {
-  return encoded.replace(/-/g, "/");
+  // Claude Code encodes paths by replacing / with -
+  // Problem: directory names can contain dashes (e.g. "my-project")
+  // Solution: walk the filesystem to find the real path
+  const parts = encoded.replace(/^-/, "").split("-");
+  let resolved = "/";
+  let i = 0;
+
+  while (i < parts.length) {
+    // Try progressively longer segments joined with dashes
+    let found = false;
+    for (let j = parts.length; j > i; j--) {
+      const candidate = parts.slice(i, j).join("-");
+      const testPath = join(resolved, candidate);
+      try {
+        const s = statSync(testPath);
+        if (s.isDirectory()) {
+          resolved = testPath;
+          i = j;
+          found = true;
+          break;
+        }
+      } catch {
+        // not found, try shorter
+      }
+    }
+    if (!found) {
+      // Fallback: treat remaining parts as slash-separated
+      resolved = join(resolved, ...parts.slice(i));
+      break;
+    }
+  }
+  return resolved;
 }
 
 function projectDisplayName(encoded: string): string {
