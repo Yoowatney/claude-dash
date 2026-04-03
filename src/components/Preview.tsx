@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
+// @ts-ignore — no type declarations for cli-table3
+import Table from "cli-table3";
 import { getSessionPreview, type ToolStats } from "../lib/scanner.js";
 import { useScrollable } from "../hooks/useScrollable.js";
 import type { Session, PreviewMessage } from "../lib/scanner.js";
@@ -32,10 +34,55 @@ function wrapText(text: string, width: number): string[] {
   return result;
 }
 
+type MdStyle = "normal" | "heading" | "codeblock" | "codefence";
+
 interface DisplayLine {
   role: "user" | "assistant" | "separator";
   text: string;
   isFirstLine: boolean;
+  mdStyle: MdStyle;
+}
+
+function isTableSeparator(line: string): boolean {
+  return /^\|[\s-:|]+\|$/.test(line.trim());
+}
+
+function isTableRow(line: string): boolean {
+  return /^\|.*\|$/.test(line.trim());
+}
+
+function parseTableCells(line: string): string[] {
+  return line.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+}
+
+function renderMarkdownTable(rows: string[]): string[] {
+  // Filter out separator rows, parse cells
+  const dataRows = rows.filter((r) => !isTableSeparator(r));
+  if (dataRows.length === 0) return rows;
+
+  const parsed = dataRows.map((r) => parseTableCells(r).map((c) => stripInlineMarkdown(c)));
+  const head = parsed[0] || [];
+  const body = parsed.slice(1);
+
+  try {
+    const table = new Table({
+      head,
+      style: { head: [], border: [], compact: true },
+    });
+    for (const row of body) {
+      table.push(row);
+    }
+    return table.toString().split("\n");
+  } catch {
+    return rows;
+  }
+}
+
+function stripInlineMarkdown(text: string): string {
+  // **bold** → bold
+  text = text.replace(/\*\*([^*]+)\*\*/g, "$1");
+  // `code` → code (keep text, style applied separately)
+  return text;
 }
 
 function buildDisplayLines(
@@ -47,18 +94,99 @@ function buildDisplayLines(
 
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i];
-    const wrapped = wrapText(msg.text, Math.max(contentWidth, 40));
+    let inCodeBlock = false;
+    const rawLines = msg.text.split("\n");
+    const msgStartIdx = lines.length;
+    let j = 0;
 
-    wrapped.forEach((line, j) => {
-      lines.push({
-        role: msg.role,
-        text: line,
-        isFirstLine: j === 0,
+    while (j < rawLines.length) {
+      const rawLine = rawLines[j];
+
+      // Code fence detection
+      if (rawLine.trimStart().startsWith("```")) {
+        inCodeBlock = !inCodeBlock;
+        lines.push({
+          role: msg.role,
+          text: "",
+          isFirstLine: false,
+          mdStyle: "codefence",
+        });
+        j++;
+        continue;
+      }
+
+      if (inCodeBlock) {
+        lines.push({
+          role: msg.role,
+          text: rawLine,
+          isFirstLine: false,
+          mdStyle: "codeblock",
+        });
+        j++;
+        continue;
+      }
+
+      // Table block detection — collect consecutive | rows
+      if (isTableRow(rawLine)) {
+        const tableRows: string[] = [];
+        while (j < rawLines.length && isTableRow(rawLines[j])) {
+          tableRows.push(rawLines[j]);
+          j++;
+        }
+        const rendered = renderMarkdownTable(tableRows);
+        for (const tLine of rendered) {
+          lines.push({
+            role: msg.role,
+            text: tLine,
+            isFirstLine: false,
+            mdStyle: "normal",
+          });
+        }
+        continue;
+      }
+
+      // Heading detection
+      const headingMatch = rawLine.match(/^(#{1,6})\s+(.*)/);
+      if (headingMatch) {
+        const text = stripInlineMarkdown(headingMatch[2]);
+        const wrapped = wrapText(text, Math.max(contentWidth, 40));
+        wrapped.forEach((line, k) => {
+          lines.push({
+            role: msg.role,
+            text: line,
+            isFirstLine: false,
+            mdStyle: k === 0 ? "heading" : "normal",
+          });
+        });
+        j++;
+        continue;
+      }
+
+      // Normal text with inline markdown stripped
+      const processed = stripInlineMarkdown(rawLine);
+      const wrapped = wrapText(processed, Math.max(contentWidth, 40));
+
+      wrapped.forEach((line) => {
+        lines.push({
+          role: msg.role,
+          text: line,
+          isFirstLine: false,
+          mdStyle: "normal",
+        });
       });
-    });
+      j++;
+    }
+
+    // Set isFirstLine on the first non-empty line of this message
+    for (let k = msgStartIdx; k < lines.length; k++) {
+      if (lines[k].text.trim() || lines[k].mdStyle !== "codefence") {
+        lines[k].isFirstLine = true;
+        break;
+      }
+    }
 
     if (i < messages.length - 1) {
-      lines.push({ role: "separator", text: "", isFirstLine: false });
+      lines.push({ role: "separator", text: "", isFirstLine: false, mdStyle: "normal" });
     }
   }
   return lines;
@@ -236,36 +364,58 @@ export default function Preview({ session, onClose, onSelect, demoData, demoSubt
             );
           }
 
+          if (line.mdStyle === "codefence") {
+            return (
+              <Text key={`cf-${globalIdx}`} dimColor>
+                {"     "}{"─".repeat(Math.min(termWidth - 10, 50))}
+              </Text>
+            );
+          }
+
           const prefix = line.isFirstLine
             ? line.role === "user"
               ? "You: "
               : "AI:  "
             : "     ";
 
-          // Highlight matching lines
-          const textColor = isCurrentMatch
-            ? "yellow"
-            : isMatch
-              ? "yellow"
-              : line.role === "user"
-                ? "green"
-                : "white";
+          // Determine text color based on search match and markdown style
+          let textColor: string;
+          let isBold = false;
+          let isDim = false;
+
+          if (isCurrentMatch || isMatch) {
+            textColor = "yellow";
+            isBold = isCurrentMatch;
+          } else if (line.mdStyle === "heading") {
+            textColor = "cyan";
+            isBold = true;
+          } else if (line.mdStyle === "codeblock") {
+            textColor = "gray";
+            isDim = false;
+          } else if (line.role === "user") {
+            textColor = "green";
+          } else {
+            textColor = "white";
+          }
+
+          const codePrefix = line.mdStyle === "codeblock" ? "  " : "";
 
           return (
             <Box key={`${globalIdx}`}>
               <Text
                 color={line.role === "user" ? "green" : "white"}
                 bold={line.role === "user" && line.isFirstLine}
-                dimColor={line.role === "assistant" && !isMatch}
+                dimColor={false}
               >
                 {prefix}
               </Text>
               <Text
                 color={textColor}
-                bold={isCurrentMatch}
+                bold={isBold}
+                dimColor={isDim}
                 wrap="wrap"
               >
-                {line.text}
+                {codePrefix}{line.text}
               </Text>
               {isCurrentMatch && <Text color="yellow"> ◀</Text>}
             </Box>
